@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DeckPlan — deck permit drawings</title>
+<meta name="description" content="Enter a deck design and get City of Winnipeg permit-style drawings, a material list and a PDF.">
+<meta name="theme-color" content="#2b3036">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<header class="bar">
+  <div class="brand">
+    <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><rect x="1" y="1" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 22h22M5 26h22M9 22V12M23 22V12M5 12h22" stroke="currentColor" stroke-width="2" fill="none"/><path d="M5 12 16 5l11 7" stroke="#e8590c" stroke-width="2" fill="none"/></svg>
+    <div><strong>DeckPlan</strong><span id="hdrAddr">Permit drawings</span></div>
+  </div>
+  <div class="actions">
+    <button class="ghost" id="btnOpen" title="Open a saved project file">Open</button>
+    <button class="ghost" id="btnSave" title="Download this project as a file">Save</button>
+    <button class="primary" id="btnPdf">Export PDF</button>
+  </div>
+  <input type="file" id="fileOpen" accept=".json,application/json" hidden>
+</header>
+
+<nav class="switch" aria-label="View">
+  <button data-pane="inputs" aria-pressed="true">Inputs</button>
+  <button data-pane="sheets" aria-pressed="false">Drawings</button>
+</nav>
+
+<main class="layout">
+  <form class="inputs" id="form" autocomplete="off" onsubmit="return false">
+    <p class="hint">Lengths accept <code>16'</code>, <code>12'-6"</code>, <code>4.5</code> (feet) or <code>1200mm</code>. Drawings update as you type.</p>
+
+    <details open><summary>Project &amp; title block</summary>
+      <label>Owner<input data-k="project.owner"></label>
+      <label>Civic address<input data-k="project.address"></label>
+      <label>City<input data-k="project.city"></label>
+      <label>Legal description<input data-k="project.legal" placeholder="Lot / Block / Plan"></label>
+      <div class="row2">
+        <label>Drawing date<input type="date" data-k="project.date"></label>
+        <label>Permit / application no.<input data-k="project.permitNo" placeholder="optional"></label>
+      </div>
+      <label>Issue description (rev. 0)<input data-k="project.revisions.0.desc"></label>
+      <div class="row2">
+        <label>Drawn by<input data-k="project.drawnBy"></label>
+        <label>Checked by<input data-k="project.checkedBy" placeholder="optional"></label>
+      </div>
+      <label>Contractor contact line<input data-k="project.contact" placeholder="optional, printed under the name"></label>
+    </details>
+
+    <details><summary>Lot &amp; house (site plan)</summary>
+      <label>Street name<input data-k="site.street"></label>
+      <div class="row2">
+        <label>Rear lane<select data-k="site.lane" data-type="bool"><option value="true">Yes</option><option value="false">No</option></select></label>
+        <label>Street side of lot faces<select data-k="site.faces"><option>N</option><option>E</option><option>S</option><option>W</option></select></label>
+      </div>
+      <div class="row2">
+        <label>Lot width (frontage)<input data-k="site.lotW" data-len></label>
+        <label>Lot depth<input data-k="site.lotD" data-len></label>
+      </div>
+      <div class="row2">
+        <label>House width<input data-k="site.houseW" data-len></label>
+        <label>House depth<input data-k="site.houseD" data-len></label>
+      </div>
+      <div class="row2">
+        <label>House to front line<input data-k="site.frontSB" data-len></label>
+        <label>House to left side line<input data-k="site.leftSB" data-len></label>
+      </div>
+      <label>Required side yard from zoning<input data-k="site.sideReq" data-len placeholder="leave blank if unknown"></label>
+      <div class="row2">
+        <label>Detached garage<select data-k="site.garage.on" data-type="bool"><option value="true">Yes</option><option value="false">No</option></select></label>
+        <label>Overhead power lines<select data-k="site.overhead" data-type="bool"><option value="false">No</option><option value="true">Yes</option></select></label>
+      </div>
+      <div class="row2 garage">
+        <label>Garage width<input data-k="site.garage.w" data-len></label>
+        <label>Garage depth<input data-k="site.garage.d" data-len></label>
+        <label>Garage to rear line<input data-k="site.garage.rear" data-len></label>
+        <label>Garage to right line<input data-k="site.garage.right" data-len></label>
+      </div>
+      <label>Where the lot dimensions came from<input data-k="site.dimSource" placeholder="e.g. per survey dated …"></label>
+    </details>
+
+    <details open><summary>Deck</summary>
+      <label>Type<select data-k="deck.attach"><option value="attached">Attached to house (ledger)</option><option value="free">Freestanding</option></select></label>
+      <div class="row2">
+        <label>Length along house<input data-k="deck.L" data-len></label>
+        <label>Width out from house<input data-k="deck.W" data-len></label>
+      </div>
+      <div class="row2">
+        <label>Deck surface above grade<input data-k="deck.H" data-len></label>
+        <label>Offset from house left corner<input data-k="deck.offset" data-len></label>
+      </div>
+      <label class="free-only">Gap from house (freestanding)<input data-k="deck.gap" data-len></label>
+      <label>Shape<select data-k="deck.shape" id="inShape"><option value="rect">Rectangle</option><option value="L">L-shape (main deck + wing)</option></select></label>
+      <div class="l-only">
+        <div class="row2">
+          <label>Wing at which end<select data-k="deck.extSide"><option value="right">Right end</option><option value="left">Left end</option></select></label>
+          <label>Wing width (along house)<input data-k="deck.extW" data-len></label>
+        </div>
+        <label>Wing sticks out past the main deck by<input data-k="deck.extD" data-len></label>
+        <p class="note">The wing is framed as its own zone, with its own beams and footings. The joint between the zones gets a doubled, through-bolted rim (VERIFY with the City).</p>
+      </div>
+    </details>
+
+    <details><summary>House wall: doors &amp; windows</summary>
+      <p class="note">Manitoba ITS Guide 06 asks for the doors to the deck and any basement windows under or near it. Measure each one from the deck's left end.</p>
+      <div id="openList" class="openlist"></div>
+      <div class="row2">
+        <button type="button" class="ghost" id="btnAddDoor">+ Door</button>
+        <button type="button" class="ghost" id="btnAddWin">+ Basement window</button>
+      </div>
+    </details>
+
+    <details open><summary>Framing</summary>
+      <div class="row2">
+        <label>Joist size<select data-k="framing.joist"><option>2x6</option><option>2x8</option><option>2x10</option><option>2x12</option></select></label>
+        <label>Joist spacing<select data-k="framing.spacing" data-type="num"><option value="12">12" o.c.</option><option value="16">16" o.c.</option><option value="24">24" o.c.</option></select></label>
+      </div>
+      <div class="row2">
+        <label>Joist direction<select data-k="framing.dir"><option value="perp">Out from house</option><option value="parallel">Parallel to house</option></select></label>
+        <label>Joist cantilever past beam<input data-k="framing.cant" data-len></label>
+      </div>
+      <div class="row2">
+        <label>Beam<select data-k="framing.beam"><option>2-2x8</option><option>3-2x8</option><option>3-2x6</option><option>4-2x6</option><option>2-2x10</option><option>3-2x10</option><option>2-2x12</option><option>3-2x12</option></select></label>
+        <label>Post<select data-k="framing.post"><option>6x6</option><option>4x4</option></select></label>
+      </div>
+      <div class="row2">
+        <label>Max post spacing<input data-k="framing.postMax" data-len></label>
+        <label>Beam overhang past end post<input data-k="framing.beamOH" data-len></label>
+      </div>
+      <p class="note" id="beamNote"></p>
+    </details>
+
+    <details><summary>Footings</summary>
+      <label>Footing type<select data-k="found.type"><option value="sonotube">Sonotube concrete pier</option><option value="screwpile">Screw pile</option><option value="pad">Surface pad</option></select></label>
+      <div class="row2">
+        <label>Pier diameter<select data-k="found.dia" data-type="num"><option value="8">8"</option><option value="10">10"</option><option value="12">12"</option></select></label>
+        <label>Depth below grade<input data-k="found.depth" data-len></label>
+      </div>
+      <label>Pier top above grade<input data-k="found.above" data-len></label>
+      <div class="row2 pile-only">
+        <label>Screw pile maker<input data-k="found.pileMaker" placeholder="e.g. as supplied"></label>
+        <label>Pile model no.<input data-k="found.pileModel"></label>
+      </div>
+      <label class="check"><input type="checkbox" data-k="found.engineered" data-type="check"> Foundation designed by an engineer</label>
+    </details>
+
+    <details><summary>Ledger</summary>
+      <label>Ledger fastener<input data-k="ledger.fastener"></label>
+      <label>Spacing (in, each row)<input type="number" min="4" max="32" step="1" data-k="ledger.spacing" data-type="num"></label>
+      <p class="note">The City deck guide doesn't set ledger fastening. The drawings mark it "verify". Confirm it with the plan examiner.</p>
+    </details>
+
+    <details><summary>Decking &amp; guards</summary>
+      <label>Decking<select data-k="decking.material"><option value="composite">Composite</option><option value="pt">Pressure-treated 5/4x6</option><option value="cedar">Cedar</option></select></label>
+      <label>Decking description on drawings<input data-k="decking.name"></label>
+      <div class="row2">
+        <label>Board width (in)<input type="number" step="0.25" data-k="decking.boardW" data-type="num"></label>
+        <label>Gap (in)<input type="number" step="0.0625" data-k="decking.gap" data-type="num"></label>
+      </div>
+      <label>Guard / railing<select data-k="guard.type"><option value="alum">Aluminum system</option><option value="glass">Glass panel system</option><option value="wood">Wood (4x4 posts, 2x2 balusters)</option></select></label>
+      <label class="check"><input type="checkbox" data-k="guard.always" data-type="check"> Add a guard even when not required</label>
+    </details>
+
+    <details><summary>Stairs</summary>
+      <label class="check"><input type="checkbox" data-k="stairs.on" data-type="check"> Deck has stairs</label>
+      <div class="row2">
+        <label>Stair side<select data-k="stairs.side"><option value="front">Front (far from house)</option><option value="left">Left end</option><option value="right">Right end</option></select></label>
+        <label>Offset along that side<input data-k="stairs.offset" data-len></label>
+      </div>
+      <div class="row2">
+        <label>Stair width<input data-k="stairs.width" data-len></label>
+        <label>Tread run (in)<input type="number" step="0.25" data-k="stairs.run" data-type="num"></label>
+      </div>
+      <label class="check"><input type="checkbox" data-k="stairs.landing.on" data-type="check"> Add a landing partway down (straight run)</label>
+      <div class="row2 landing-only">
+        <label>Landing depth<input data-k="stairs.landing.depth" data-len></label>
+        <label>Landing height<select data-k="stairs.landing.frac" data-type="num"><option value="0.5">Halfway down</option><option value="0.33">1/3 of the way down</option><option value="0.67">2/3 of the way down</option></select></label>
+      </div>
+      <p class="note" id="stairNote"></p>
+    </details>
+
+    <details><summary>Site photos &amp; sketch</summary>
+      <label>Rough sketch (photo or scan)<input type="file" accept="image/*" id="inSketch"></label>
+      <label>Site photos<input type="file" accept="image/*" multiple id="inPhotos"></label>
+      <div class="thumbs" id="thumbs"></div>
+      <p class="note">Photos and the sketch go on an extra sheet marked "reference only". They don't change the drawings.</p>
+    </details>
+
+    <details><summary>Labour</summary>
+      <label class="check"><input type="checkbox" data-k="labour.on" data-type="check"> Show a labour line in the budget</label>
+      <div class="row2 labour-only">
+        <label>Rate ($ per hour)<input type="number" step="1" min="0" inputmode="decimal" data-k="labour.rate" data-type="num" placeholder="enter your rate"></label>
+        <label>Hours<input type="number" step="1" min="0" inputmode="numeric" data-k="labour.hours" data-type="num" id="inHours"></label>
+      </div>
+      <p class="note labour-only" id="labourNote"></p>
+      <details class="labour-only sub"><summary>Hour factors (placeholders, set your own)</summary>
+        <div class="row2">
+          <label>Hours per sq.ft of deck<input type="number" step="0.01" data-k="labour.factors.area" data-type="num"></label>
+          <label>Hours per footing<input type="number" step="0.25" data-k="labour.factors.footing" data-type="num"></label>
+          <label>Hours per lin.ft of guard<input type="number" step="0.05" data-k="labour.factors.guard" data-type="num"></label>
+          <label>Hours per stair riser<input type="number" step="0.25" data-k="labour.factors.riser" data-type="num"></label>
+          <label>Hours per landing<input type="number" step="0.5" data-k="labour.factors.landing" data-type="num"></label>
+        </div>
+      </details>
+    </details>
+
+    <details><summary>Prices &amp; assumptions</summary>
+      <p class="note">Default prices are retailer website prices read 14 Nov 2026. Type your supplier's price to replace one. Leave it blank to use the default.</p>
+      <div id="priceList" class="prices"></div>
+      <div class="row2">
+        <label>Concrete per 30 kg bag (ft³)<input type="number" step="0.05" data-k="assume.bagYield" data-type="num"></label>
+        <label>Waste allowance (%)<input type="number" step="1" data-k="assume.waste" data-type="num"></label>
+        <label>Fasteners per box<input type="number" step="1" data-k="assume.boxQty" data-type="num"></label>
+        <label>Guard section length (ft)<input type="number" step="1" data-k="assume.railSection" data-type="num"></label>
+        <label>Stringer spacing max (in)<input type="number" step="1" data-k="assume.stringerSp" data-type="num"></label>
+      </div>
+    </details>
+
+    <details><summary>Notes &amp; output</summary>
+      <label>Extra note on the framing sheet<textarea rows="3" data-k="project.notes"></textarea></label>
+      <label>Paper<select data-k="out.paper"><option value="tabloid">11×17 (Tabloid), full scale</option><option value="letter">8.5×11 (Letter), reduced</option></select></label>
+      <label class="check"><input type="checkbox" data-k="out.budget" data-type="check"> Include material &amp; budget sheet</label>
+      <label class="check"><input type="checkbox" data-k="out.checks" data-type="check"> Include design checks &amp; City deck checklist sheet</label>
+      <button type="button" class="ghost wide" id="btn3View">Export City 3-view set (plan, front, side)</button>
+      <button type="button" class="ghost wide" id="btnSplit">Export as 2 files: PDF2 site plan + PDF3 building plans</button>
+      <button type="button" class="ghost wide danger" id="btnReset">Reset to the sample deck</button>
+    </details>
+  </form>
+
+  <section class="sheets" aria-label="Drawings">
+    <div class="sheetbar">
+      <div class="tabs" id="tabs" role="tablist"></div>
+      <button class="chip" id="chkChip" type="button"></button>
+    </div>
+    <div class="checks" id="checks" hidden></div>
+    <div class="paper" id="paper" tabindex="0" aria-live="polite"></div>
+  </section>
+</main>
+<div class="toast" id="toast" role="status" hidden></div>
+<div id="pdfStage" aria-hidden="true"></div>
+
+<script src="vendor/jspdf.umd.min.js"></script>
+<script src="vendor/svg2pdf.umd.min.js"></script>
+<script src="vendor/osifont.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/svgkit.js"></script>
+<script src="js/sheets.js"></script>
+<script src="js/sheets2.js"></script>
+<script src="js/sheets3.js"></script>
+<script src="js/defaults.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

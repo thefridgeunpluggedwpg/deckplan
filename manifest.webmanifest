@@ -1,0 +1,3 @@
+{ "name": "DeckPlan — deck permit drawings", "short_name": "DeckPlan", "start_url": "./", "display": "standalone",
+  "background_color": "#eef0f1", "theme_color": "#2b3036",
+  "icons": [{ "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }] }
