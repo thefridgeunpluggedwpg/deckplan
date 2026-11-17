@@ -11,45 +11,21 @@
   "firmCity": "WINNIPEG, MANITOBA",
   "contact": "",
   "checkedBy": "",
-  "date": "2026-11-15",
+  "date": "2026-11-17",
   "revisions": [
    {
     "no": "0",
-    "date": "2026-11-15",
+    "date": "2026-11-17",
     "desc": "ISSUED FOR CONSTRUCTION"
    }
   ],
   "notes": ""
- },
- "site": {
-  "street": "SAMPLE STREET",
-  "lane": true,
-  "laneName": "REAR LANE",
-  "faces": "N",
-  "lotW": "50'",
-  "lotD": "120'",
-  "houseW": "36'",
-  "houseD": "30'",
-  "frontSB": "25'",
-  "leftSB": "7'",
-  "sideReq": "",
-  "overhead": false,
-  "overheadNote": "",
-  "garage": {
-   "on": true,
-   "w": "22'",
-   "d": "22'",
-   "rear": "3'",
-   "right": "3'"
-  },
-  "dimSource": ""
  },
  "deck": {
   "attach": "attached",
   "L": "16'",
   "W": "12'",
   "H": "4'",
-  "offset": "10'",
   "gap": "1'",
   "shape": "rect",
   "extSide": "right",
@@ -85,13 +61,13 @@
   "beamOH": "1'"
  },
  "found": {
-  "type": "sonotube",
+  "type": "screwpile",
   "dia": 10,
   "depth": "6'",
   "above": "6\"",
   "padT": 6,
   "engineered": false,
-  "pileMaker": "",
+  "pileMaker": "Gary Taylor",
   "pileModel": ""
  },
  "ledger": {
@@ -122,31 +98,7 @@
    "frac": 0.5
   }
  },
- "assume": {
-  "bagYield": 0.5,
-  "waste": 10,
-  "boxQty": 350,
-  "railSection": 6,
-  "stringerSp": 16
- },
- "prices": {},
- "labour": {
-  "on": true,
-  "rate": "",
-  "hours": "",
-  "factors": {
-   "area": 0.2,
-   "footing": 2,
-   "guard": 0.4,
-   "riser": 1.5,
-   "landing": 6
-  }
- },
- "photos": [],
- "sketch": null,
  "out": {
-  "paper": "tabloid",
-  "budget": true,
-  "checks": true
+  "paper": "tabloid"
  }
 }

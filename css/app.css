@@ -44,14 +44,6 @@ input.bad{border-color:var(--ng);box-shadow:0 0 0 3px #b4231822}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
 .note{font-size:12.5px;color:var(--steel);margin:8px 0 0}
 .note b{color:var(--graphite)}
-.thumbs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.thumbs figure{margin:0;position:relative}
-.thumbs img{width:76px;height:76px;object-fit:cover;border:1px solid var(--line);border-radius:4px;display:block}
-.thumbs button{position:absolute;top:2px;right:2px;border:0;background:#000a;color:#fff;border-radius:3px;font-size:11px;padding:1px 5px}
-.prices{display:grid;grid-template-columns:1fr 104px;gap:4px 10px;align-items:center;margin-top:8px}
-.prices span{font-size:13px}
-.prices small{display:block;color:#7a828b;font-size:11px}
-.prices input{margin:0;min-height:36px;text-align:right}
 .sheets{display:flex;flex-direction:column;min-width:0;min-height:0}
 .sheetbar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);background:#f7f8f9;flex-wrap:wrap}
 .tabs{display:flex;gap:4px;flex-wrap:wrap}

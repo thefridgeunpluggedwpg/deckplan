@@ -220,32 +220,6 @@
       sv.rect(c[0] - w0 / 2, c[1] - 8.5, w0, 14, LW.t, { fill: '#fff' });
       sv.text(c[0], c[1] + 2.8, lt, { size: 8, bold: true, anchor: 'middle' });
     }
-    // section cut marker 1/A4 through the section zone, mid bay
-    const k = Math.floor(ju.length / 2);
-    const uc = Math.min(ju[k] + m.spacing / 24, zs.R - 0.5);
-    const cutA = zs.toXY(uc, 0), cutB = zs.toXY(uc, zs.S);
-    let sa, sb;
-    if (m.perp) {
-      let yEnd = zs.y0 + zs.S + 0.9;
-      if (st0 && st0.side === 'front' && cutA.x > st0.off - 0.6 && cutA.x < st0.off + st0.ws + 0.6) yEnd = Math.max(yEnd, st0.rect.y + st0.rect.h + 0.9);
-      sa = P(cutA.x, -gapH - 2.4); sb = P(cutA.x, yEnd);
-    } else { sa = P(cutA.x - 0.9, cutA.y); sb = P(cutB.x + 0.9, cutB.y); }
-    if (!meta.threeView) {
-    sv.line(sa[0], sa[1], sb[0], sb[1], LW.h, '16 3 3 3');
-    [sa, sb].forEach((p, i) => {
-      const dir = m.perp ? [-1, 0] : [0, -1];
-      const r = 13;
-      const cc = m.perp ? [p[0], p[1] + (i ? r : -r)] : [p[0] + (i ? r : -r), p[1]];
-      const tip = [cc[0] + dir[0] * (r + 7), cc[1] + dir[1] * (r + 7)];
-      const nx = -dir[1], ny = dir[0];
-      sv.pl([[cc[0] + nx * r, cc[1] + ny * r], tip, [cc[0] - nx * r, cc[1] - ny * r]], LW.t, { close: true, fill: '#000' });
-      sv.circle(cc[0], cc[1], r, LW.m, { fill: '#fff' });
-      sv.line(cc[0] - r, cc[1], cc[0] + r, cc[1], LW.t);
-      sv.text(cc[0], cc[1] - 2, '1', { size: 9, bold: true, anchor: 'middle' });
-      sv.text(cc[0], cc[1] + 8, meta.secRef, { size: 7, anchor: 'middle' });
-    });
-    }
-    void cutB;
     // DIMENSIONS
     const yb = P(0, E.y1)[1];
     const uniq = (arr) => arr.sort((a, b) => a - b).filter((v, i, a) => !i || v - a[i - 1] > 0.05);
@@ -289,8 +263,9 @@
     left.push({ x: bp[0], y: bp[1], lines: [m.beam.label + ' SPF NO.2 P.T. BUILT-UP', 'BEAM BELOW JOISTS (TYP.)'] });
     if (m.anyLedger) { const lz = m.zones.find((z) => z.useLedger); const lp = PX(lz.toXY(0.4, t / 2)); left.push({ x: lp[0], y: lp[1], lines: [st.framing.joist + ' P.T. LEDGER W/ ' + st.ledger.fastener, '2 ROWS STAGGERED @ ' + st.ledger.spacing + '" O.C. (VERIFY)'] }); }
     const ff = z0.footings[0]; const fp = P(ff.x, ff.y);
-    const footTxt = fo.type === 'sonotube' ? fo.dia + '" DIA. CONC. PIER' : fo.type === 'screwpile' ? 'SCREW PILE' : 'CONC. SURFACE PAD';
-    left.push({ x: fp[0] - 3, y: fp[1] + 3, lines: [st.framing.post + ' P.T. POST ON ' + footTxt, 'F1 — SEE FOOTING SCHEDULE (TYP. ' + m.footings.length + ')'] });
+    const pk = DP.pileKind(fo);
+    const nDeckF0 = m.zones.reduce((a, z) => a + z.footings.length, 0);
+    left.push({ x: fp[0] - 3, y: fp[1] + 3, lines: [st.framing.post + ' P.T. POST ON ' + pk.short, 'F1 — SEE FOOTING SCHEDULE (TYP. ' + nDeckF0 + ')'] });
     const rp = PX(z0.toXY(Math.min(z0.R * 0.08 + 0.2, z0.R - 0.2), z0.S - t / 2));
     left.push({ x: rp[0], y: rp[1], lines: [st.framing.joist + ' P.T. RIM JOIST'] });
     if (m.guardOn) { const gr0 = m.guardRuns.find((r) => r.side === 'left') || m.guardRuns[0]; const gp = gr0.horiz ? P(gr0.from + 0.4, gr0.pos) : P(gr0.pos + 2 / 12, gr0.from + (gr0.to - gr0.from) * 0.6); left.push({ x: gp[0], y: gp[1], lines: [fin(m.guardHIn) + ' GUARD (' + (m.guardHIn === 42 ? '1070' : '900') + ' MM)', 'SEE ' + (meta.elevRef || 'A3')] }); }
@@ -299,22 +274,31 @@
       const ls = ['STAIR: ' + st0.nR + ' RISERS @ ' + fin(st0.riseIn), st0.nT + ' TREADS @ ' + fin(st0.runIn) + ', ' + fin(st0.ws * 12) + ' WIDE'];
       if (st0.landing) ls.push('LANDING ' + fmt(st0.ws) + ' × ' + fmt(st0.landing.depth) + ' AT +' + fmt(st0.landing.H));
       left.push({ x: c[0], y: c[1], lines: ls });
+      if (st0.footings && st0.footings.length) {
+        const sf = st0.footings[Math.floor(st0.footings.length / 2)];
+        const mark = m.landing ? 'F3' : 'F2';
+        left.push({ x: P(sf.x, sf.y)[0], y: P(sf.x, sf.y)[1], lines: [mark + ' STAIR FOOT PILES (' + st0.footings.length + ')'] });
+      }
     }
     if (multi) { const zj = m.perp ? P(m.zones[1].x0, m.W * 0.35) : P(m.L * 0.3, m.W); left.push({ x: zj[0], y: zj[1], lines: ['DOUBLE JOIST / RIM AT ZONE JOINT,', 'THROUGH-BOLTED (VERIFY)'] }); }
     m.openings.forEach((o, i) => { if (i < 3) { const q = P(o.at + o.w * 0.3, -gapH - wallT / 2); left.push({ x: q[0], y: q[1], lines: [o.mark + ' ' + (o.type === 'door' ? 'EXISTING DOOR ' : 'BASEMENT WINDOW ') + fmt(o.w) + ' WIDE' + (o.bedroom ? ' (BEDROOM)' : '')] }); } });
     const maxW = Math.max(...left.map((it) => Math.max(...it.lines.map((l) => DP.textW(l.toUpperCase(), DP.TS.call))))) + 14;
     const xL = Math.max(Math.min(P(ext.x0, 0)[0] - 16 - (leftChain ? 60 : 0), R.x + LEFT + 40), A.x + 12 + maxW);
     callouts(sv, left, xL, -1, R.y + 30, R.y + R.h - 40, DP.TS.call, jbox ? [jbox] : []);
-    sv.viewTitle(R.x, A.y + A.h - 30, '1', 'PLAN VIEW: FRAMING & FOUNDATION', 'SCALE: ' + scaleLbl, meta.num);
+    sv.viewTitle(R.x, A.y + A.h - 30, '1', 'OVERHEAD PLAN: FRAMING & FOUNDATION', 'SCALE: ' + scaleLbl, meta.num);
     // RIGHT COLUMN
     const cx = A.x + A.w - colW - 6;
     sv.line(cx - 10, A.y, cx - 10, A.y + A.h, LW.t);
     let y = A.y + 24;
     sv.text(cx, y, 'Footing schedule', { size: DP.TS.head, bold: true }); y += 7;
-    const fdesc = fo.type === 'sonotube' ? fo.dia + '" DIA. CONCRETE PIER (SONOTUBE), ' + fmt(m.pierDepth) + ' MIN. BELOW GRADE' : fo.type === 'screwpile' ? 'SCREW PILE BELOW FROST, ' + fmt(m.pierDepth) + ' MIN.' : 'CONCRETE SURFACE PAD';
+    const fdesc = (fo.type === 'pad' ? pk.long : pk.long + ', ' + fmt(m.pierDepth) + ' MIN. BELOW GRADE');
     const nDeckF = m.zones.reduce((a, z) => a + z.footings.length, 0);
     const ftRows = [['F1', nDeckF, fdesc, Math.max(...m.zones.flatMap((z) => z.footings.map((f) => f.load))) + ' LB']];
     if (m.landing) ftRows.push(['F2', m.landing.footings.length, 'AS F1, UNDER STAIR LANDING', Math.max(...m.landing.footings.map((f) => f.load)) + ' LB']);
+    if (st0 && st0.footings && st0.footings.length) {
+      const mark = m.landing ? 'F3' : 'F2';
+      ftRows.push([mark, st0.footings.length, 'AS F1, UNDER STAIR FOOT (2 PILES WHEN STAIR ABOUT 4\' WIDE, 3 WHEN LARGER; CUTOFF VERIFY)', Math.max(...st0.footings.map((f) => f.load)) + ' LB']);
+    }
     const fW = colW - 4 - 32 - 28 - 62;
     const ftRows2 = []; ftRows.forEach((r) => { const ls = DP.wrapW(r[2], fW - 6, DP.TS.tbl); ls.forEach((l, k) => ftRows2.push(k ? ['', '', l, ''] : [r[0], r[1], l, r[3]])); });
     y = tableBlock(sv, cx, y, [{ w: 32, label: 'MARK' }, { w: 28, label: 'QTY' }, { w: fW, label: 'DESCRIPTION' }, { w: 62, label: 'MAX LOAD', align: 'end' }], ftRows2) + 4;
@@ -322,23 +306,30 @@
     y += 20;
     if (m.openings.length) {
       sv.text(cx, y, 'Openings in house wall at deck', { size: DP.TS.head, bold: true }); y += 7;
-      const oRows = m.openings.map((o) => [o.mark, o.type === 'door' ? 'DOOR' : 'BSMT WINDOW', fmt(o.at), fmt(o.w) + ' × ' + fmt(o.h), o.type === 'window' ? (o.bedroom ? 'BEDROOM: EGRESS (VERIFY)' : 'NOT A BEDROOM') : (o.label || 'EXISTING')]);
-      y = tableBlock(sv, cx, y, [{ w: 30, label: 'MARK' }, { w: 62, label: 'TYPE' }, { w: 44, label: 'AT' }, { w: 70, label: 'W × H' }, { w: colW - 4 - 206, label: 'NOTE' }], oRows) + 6;
+      const oNoteW = colW - 4 - 30 - 62 - 44 - 70;
+      const oRows = [];
+      m.openings.forEach((o) => {
+        const note = o.type === 'window' ? (o.bedroom ? 'BEDROOM: EGRESS (VERIFY)' : 'NOT A BEDROOM') : (o.label || 'EXISTING');
+        const ls = DP.wrapW(note, oNoteW - 6, DP.TS.tbl);
+        ls.forEach((l, k) => oRows.push(k ? ['', '', '', '', l] : [o.mark, o.type === 'door' ? 'DOOR' : 'BSMT WINDOW', fmt(o.at), fmt(o.w) + ' × ' + fmt(o.h), l]));
+      });
+      y = tableBlock(sv, cx, y, [{ w: 30, label: 'MARK' }, { w: 62, label: 'TYPE' }, { w: 44, label: 'AT' }, { w: 70, label: 'W × H' }, { w: oNoteW, label: 'NOTE' }], oRows) + 6;
       sv.text(cx, y + 8, 'AT = DISTANCE FROM DECK LEFT END (MB ITS GUIDE 06).', { size: 7 }); y += 26;
     }
     const notes = [
       'ALL FRAMING LUMBER SPF NO.1/NO.2, PRESSURE TREATED. WOOD WITHIN 150 MM (6") OF GRADE OR EXPOSED TO WEATHER TO BE P.T.',
       'JOIST SPANS PER CITY TABLE 3 (1.9 KPA LIVE LOAD). JOISTS ' + st.framing.joist + ' @ ' + m.spacing + '" O.C., MAX CLEAR SPAN ' + fmt(m.clear) + '.',
       'BEAM ' + m.beam.label + ' PER CITY TABLE 2. NAIL PLIES WITH DOUBLE ROW OF 89 MM (3 1/2") NAILS @ 450 MM (18") O.C. MAX; BEAM JOINTS OVER SUPPORTS ONLY.',
-      'POSTS ' + st.framing.post + ' P.T., CENTRED ON FOOTINGS, FASTENED TO BEAM WITH GALV. POST CAP.' + (m.braced ? ' POSTS OVER 1.5 M (5\'-0"): KNEE BRACES SHOWN ON ELEVATIONS AND SECTION, SIZE AND BOLTING TO BE CONFIRMED (VERIFY).' : ' POSTS OVER 1.5 M (5\'-0") TO BE BRACED.'),
-      m.deepReq ? 'FOOTINGS TO EXTEND MIN. 1.8 M (6\'-0") BELOW GRADE (FROST). CONCRETE PIER DESIGN / SCREW PILE CAPACITY TO BE CONFIRMED (VERIFY).' : 'SURFACE PADS PER CITY TABLE 1; PROVIDE ACCESS FOR RE-LEVELLING (SCREWED DECKING).',
+      'POSTS ' + st.framing.post + ' P.T., CENTRED ON FOOTINGS, FASTENED TO BEAM WITH GALV. POST CAP.' + (m.braced ? ' POSTS OVER 1.5 M (5\'-0"): KNEE BRACES SHOWN ON ELEVATIONS (A2, A3), SIZE AND BOLTING TO BE CONFIRMED (VERIFY).' : ' POSTS OVER 1.5 M (5\'-0") TO BE BRACED.'),
+      m.H > 2 + 1e-9 ? 'PERMIT DECK OVER 2\'-0": GARY TAYLOR HELICAL PILES, CERTIFIED INSTALLER, EXTENDING MIN. 1.8 M (6\'-0") BELOW GRADE. PILE CAPACITY TO BE CONFIRMED (VERIFY). PYLEX PILES ARE FOR DECKS 2\'-0" OR LOWER ONLY.' : (m.deepReq ? 'FOOTINGS TO EXTEND MIN. 1.8 M (6\'-0") BELOW GRADE (FROST). CONCRETE PIER DESIGN / SCREW PILE CAPACITY TO BE CONFIRMED (VERIFY).' : 'SURFACE PADS PER CITY TABLE 1; PROVIDE ACCESS FOR RE-LEVELLING (SCREWED DECKING).'),
       m.attached ? 'LEDGER: REMOVE SIDING AT LEDGER, INSTALL OVER HOUSE RIM JOIST WITH Z-FLASHING. FASTENER TYPE/SPACING TO BE CONFIRMED (VERIFY).' : 'FREESTANDING DECK: NOT FASTENED TO DWELLING.',
     ];
     if (multi) notes.push('L-SHAPED DECK FRAMED AS ' + m.zones.length + ' ZONES, EACH SIZED TO CITY TABLES 2 AND 3; DOUBLE JOIST/RIM AT THE JOINT, THROUGH-BOLTED (VERIFY).');
     if (m.landing) notes.push('STAIR LANDING FRAMED AS A SEPARATE PLATFORM ON ITS OWN POSTS AND FOOTINGS (F2); LANDING LENGTH TO BE CONFIRMED (VERIFY).');
+    if (st0 && st0.footings && st0.footings.length) notes.push('STAIR FOOT PILES (' + (m.landing ? 'F3' : 'F2') + '): ' + st0.footings.length + ' PILES UNDER THE STAIR FOOT. TWO PILES WHEN THE STAIR IS ABOUT 4\'-0" WIDE; THREE WHEN LARGER (CUTOFF TO BE CONFIRMED, VERIFY).');
     notes.push('DECKING: ' + (st.decking.name || 'DECK BOARDS') + ', RUNS PERPENDICULAR TO JOISTS, FASTENED PER MANUFACTURER.', 'ALL CONNECTORS AND FASTENERS HOT-DIP GALVANIZED OR STAINLESS, RATED FOR P.T. LUMBER.', 'SCHEDULE CITY INSPECTION BEFORE COVERING ANY WORK.');
+    if (st.found.engineered) notes.push('FOUNDATION DESIGNED BY AN ENGINEER: SEALED DESIGN TO BE SUBMITTED WITH THE PERMIT APPLICATION.');
     if (st.project.notes) notes.push(st.project.notes);
-    if (st.out.checks !== false && meta.checksRef) notes.push('CITY OF WINNIPEG DESIGN CHECKS AND DECK CHECKLIST: SEE SHEET ' + (meta.checksRef || 'A6') + '.');
     H.notesBlock(sv, cx, y, colW - 4, 'Framing notes', notes, { size: 7.5 });
     return sv;
   }
@@ -459,7 +450,7 @@
     }
     // guards
     const g = st.guard;
-    const sec = +st.assume.railSection || 6;
+    const sec = 6; // typical pre-made guard section length (ft)
     const postW = g.type === 'wood' ? 3.5 / 12 : 2.5 / 12;
     function guardRun(h0, h1, zD, gH) {
       const n = Math.max(1, Math.ceil((h1 - h0) / sec - 1e-9));
@@ -538,13 +529,24 @@
             }
           }
         });
-        // landing pad at the foot
-        const padA = Math.min(hEnd, hEnd + dir * 3);
-        sv.rect(X(padA), Z(0), 3 * s, (4 / 12) * s, LW.m, { fill: '#fff' });
-        sv.concrete(X(padA), Z(0), 3 * s, (4 / 12) * s, 11);
+        // stair foot piles (drawn below); no grade pad
         out.stair = [X(h0 + dir * 1.5 * pr.run), Z(m.H - 2 * rise)];
       }
     }
+    // stair foot piles (stringers bear on pile caps at grade)
+    const pierR = ((fo.type === 'screwpile' ? 3.5 : fo.type === 'pad' ? 24 : +fo.dia) / 24);
+    const seenST = {};
+    (m.stairFootings || []).forEach((f) => {
+      const h = hOf(f), key = Math.round(h * 20) + ':ST';
+      if (seenST[key]) return; seenST[key] = 1;
+      if (fo.type === 'pad') { sv.rect(X(h - pierR), Z(m.pierTop), 2 * pierR * s, m.pierTop * s, LW.m); }
+      else {
+        sv.rect(X(h - pierR), Z(0), 2 * pierR * s, m.pierDepth * s, LW.m, { dash: DASH.hidden });
+        if (m.pierTop > 0) sv.rect(X(h - pierR), Z(m.pierTop), 2 * pierR * s, m.pierTop * s, LW.m, { fill: '#fff' });
+        if (fo.type === 'screwpile') sv.pl([[X(h - 0.6), Z(-m.pierDepth + 0.3)], [X(h + 0.6), Z(-m.pierDepth + 0.1)]], LW.m, { dash: DASH.hidden });
+      }
+      if (!out.stairPile) out.stairPile = [X(h + pierR), Z(-m.pierDepth * 0.35)];
+    });
     // dims (left vertical)
     const dx = X(hMin) - 18;
     sv.dimAt([X(hMin), Z(0)], [X(hMin), Z(m.topDeck)], 'y', dx, fmt(m.H) + ' (' + DP.mm(m.H) + ')');
@@ -593,8 +595,9 @@
     if (o.beam) items.push({ x: o.beam[0], y: o.beam[1], lines: [m.beam.label + ' P.T. BEAM'] });
     if (o.post) items.push({ x: o.post[0], y: o.post[1], lines: [st.framing.post + ' P.T. POST ON GALV.', 'POST BASE'] });
     if (o.brace) items.push({ x: o.brace[0], y: o.brace[1], lines: ['2x6 P.T. KNEE BRACE @ 45°,', 'BOLTED, EACH POST OVER', '5\'-0" (SIZE VERIFY)'] });
-    if (o.pier) items.push({ x: o.pier[0], y: o.pier[1], lines: [fo.type === 'sonotube' ? fo.dia + '" DIA. CONC. PIER' : fo.type === 'screwpile' ? 'SCREW PILE' : 'SURFACE PAD', fmt(m.pierDepth) + ' MIN. BELOW GRADE'] });
+    if (o.pier) items.push({ x: o.pier[0], y: o.pier[1], lines: [DP.pileKind(fo).short, fmt(m.pierDepth) + ' MIN. BELOW GRADE'] });
     if (o.landing && m.landing) items.push({ x: o.landing[0], y: o.landing[1], lines: ['STAIR LANDING ' + fmt(m.landing.rect.w) + ' × ' + fmt(m.landing.rect.h) + ',', 'OWN POSTS AND FOOTINGS (F2)'] });
+    if (o.stairPile && m.stair && m.stair.footings && m.stair.footings.length) items.push({ x: o.stairPile[0], y: o.stairPile[1], lines: [(m.landing ? 'F3' : 'F2') + ' STAIR FOOT PILES (' + m.stair.footings.length + ')', DP.pileKind(fo).short] });
     if (o.stair && st0) {
       const lines = ['STAIR: ' + st0.nR + ' RISERS @ ' + fin(st0.riseIn), st0.nT + ' TREADS @ ' + fin(st0.runIn) + ', ' + fin(st0.ws * 12) + ' WIDE'];
       if (st0.guard) lines.push('STAIR GUARD 36" ABOVE NOSINGS');
@@ -609,6 +612,7 @@
     // key notes for this view (heights the City asks for on elevations)
     const kn = ['DECK HEIGHT ' + fmt(m.H) + ' (' + DP.mm(m.H) + ' MM) ABOVE GRADE.', m.guardOn ? 'GUARD ' + fin(m.guardHIn) + ' HIGH ABOVE DECK SURFACE, ' + (st.guard.type === 'alum' ? 'ALUMINUM' : st.guard.type === 'glass' ? 'GLASS' : 'WOOD') + ' SYSTEM.' : 'NO GUARD REQUIRED (DECK 600 MM OR LESS ABOVE GRADE).'];
     if (st0) kn.push(st0.handrail || st0.guard ? 'STAIR ' + (st0.guard ? 'GUARD 36" ABOVE NOSINGS, GRASPABLE HANDRAIL 865–1070 MM.' : 'HANDRAIL 865–1070 MM ABOVE NOSINGS.') : 'STAIR 3 RISERS OR LESS: NO HANDRAIL REQUIRED.');
+    if (v !== 'front' && m.openings.length) kn.push('DOORS / BASEMENT WINDOWS IN THE HOUSE WALL: SEE THE OPENINGS TABLE ON A1 AND THE VIEW ON A2.');
     const kx = A.x + 360; let ky = A.y + A.h - 44;
     kn.forEach((l) => { sv.text(kx, ky, l, { size: 8 }); ky += 11; });
     return sv;

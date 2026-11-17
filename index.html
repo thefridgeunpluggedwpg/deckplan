@@ -4,8 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>DeckPlan — deck permit drawings</title>
-<meta name="description" content="Enter a deck design and get City of Winnipeg permit-style drawings, a material list and a PDF.">
+<meta name="description" content="Enter a deck design and get City of Winnipeg permit-style blueprint drawings: overhead plan, front and side elevations, one per PDF page.">
 <meta name="theme-color" content="#2b3036">
+<meta name="deckplan-version" content="1.3.0">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="css/app.css">
@@ -19,7 +20,7 @@
   <div class="actions">
     <button class="ghost" id="btnOpen" title="Open a saved project file">Open</button>
     <button class="ghost" id="btnSave" title="Download this project as a file">Save</button>
-    <button class="primary" id="btnPdf">Export PDF</button>
+    <button class="primary" id="btnPdf" title="Overhead plan, front elevation and side elevation, one per page">Export PDF</button>
   </div>
   <input type="file" id="fileOpen" accept=".json,application/json" hidden>
 </header>
@@ -31,7 +32,7 @@
 
 <main class="layout">
   <form class="inputs" id="form" autocomplete="off" onsubmit="return false">
-    <p class="hint">Lengths accept <code>16'</code>, <code>12'-6"</code>, <code>4.5</code> (feet) or <code>1200mm</code>. Drawings update as you type.</p>
+    <p class="hint">DeckPlan makes blueprint drawings only: 3 sheets (overhead plan, front elevation, side elevation). Lengths accept <code>16'</code>, <code>12'-6"</code>, <code>4.5</code> (feet) or <code>1200mm</code>. Drawings update as you type.</p>
 
     <details open><summary>Project &amp; title block</summary>
       <label>Owner<input data-k="project.owner"></label>
@@ -50,48 +51,13 @@
       <label>Contractor contact line<input data-k="project.contact" placeholder="optional, printed under the name"></label>
     </details>
 
-    <details><summary>Lot &amp; house (site plan)</summary>
-      <label>Street name<input data-k="site.street"></label>
-      <div class="row2">
-        <label>Rear lane<select data-k="site.lane" data-type="bool"><option value="true">Yes</option><option value="false">No</option></select></label>
-        <label>Street side of lot faces<select data-k="site.faces"><option>N</option><option>E</option><option>S</option><option>W</option></select></label>
-      </div>
-      <div class="row2">
-        <label>Lot width (frontage)<input data-k="site.lotW" data-len></label>
-        <label>Lot depth<input data-k="site.lotD" data-len></label>
-      </div>
-      <div class="row2">
-        <label>House width<input data-k="site.houseW" data-len></label>
-        <label>House depth<input data-k="site.houseD" data-len></label>
-      </div>
-      <div class="row2">
-        <label>House to front line<input data-k="site.frontSB" data-len></label>
-        <label>House to left side line<input data-k="site.leftSB" data-len></label>
-      </div>
-      <label>Required side yard from zoning<input data-k="site.sideReq" data-len placeholder="leave blank if unknown"></label>
-      <div class="row2">
-        <label>Detached garage<select data-k="site.garage.on" data-type="bool"><option value="true">Yes</option><option value="false">No</option></select></label>
-        <label>Overhead power lines<select data-k="site.overhead" data-type="bool"><option value="false">No</option><option value="true">Yes</option></select></label>
-      </div>
-      <div class="row2 garage">
-        <label>Garage width<input data-k="site.garage.w" data-len></label>
-        <label>Garage depth<input data-k="site.garage.d" data-len></label>
-        <label>Garage to rear line<input data-k="site.garage.rear" data-len></label>
-        <label>Garage to right line<input data-k="site.garage.right" data-len></label>
-      </div>
-      <label>Where the lot dimensions came from<input data-k="site.dimSource" placeholder="e.g. per survey dated …"></label>
-    </details>
-
     <details open><summary>Deck</summary>
       <label>Type<select data-k="deck.attach"><option value="attached">Attached to house (ledger)</option><option value="free">Freestanding</option></select></label>
       <div class="row2">
         <label>Length along house<input data-k="deck.L" data-len></label>
         <label>Width out from house<input data-k="deck.W" data-len></label>
       </div>
-      <div class="row2">
-        <label>Deck surface above grade<input data-k="deck.H" data-len></label>
-        <label>Offset from house left corner<input data-k="deck.offset" data-len></label>
-      </div>
+      <label>Deck surface above grade<input data-k="deck.H" data-len></label>
       <label class="free-only">Gap from house (freestanding)<input data-k="deck.gap" data-len></label>
       <label>Shape<select data-k="deck.shape" id="inShape"><option value="rect">Rectangle</option><option value="L">L-shape (main deck + wing)</option></select></label>
       <div class="l-only">
@@ -134,15 +100,16 @@
     </details>
 
     <details><summary>Footings</summary>
-      <label>Footing type<select data-k="found.type"><option value="sonotube">Sonotube concrete pier</option><option value="screwpile">Screw pile</option><option value="pad">Surface pad</option></select></label>
+      <p class="note">Johnny's rule (stricter than the City guide, so it wins): any permit deck over 2'-0" uses Gary Taylor helical piles, installed by a certified installer. Pylex piles only on decks 2'-0" or lower (typically no permit).</p>
+      <label>Footing type<select data-k="found.type"><option value="screwpile">Screw pile (helical)</option><option value="sonotube">Sonotube concrete pier</option><option value="pad">Surface pad</option></select></label>
       <div class="row2">
         <label>Pier diameter<select data-k="found.dia" data-type="num"><option value="8">8"</option><option value="10">10"</option><option value="12">12"</option></select></label>
         <label>Depth below grade<input data-k="found.depth" data-len></label>
       </div>
       <label>Pier top above grade<input data-k="found.above" data-len></label>
       <div class="row2 pile-only">
-        <label>Screw pile maker<input data-k="found.pileMaker" placeholder="e.g. as supplied"></label>
-        <label>Pile model no.<input data-k="found.pileModel"></label>
+        <label>Screw pile maker<input data-k="found.pileMaker" placeholder="Gary Taylor or Pylex"></label>
+        <label>Pile model / note<input data-k="found.pileModel"></label>
       </div>
       <label class="check"><input type="checkbox" data-k="found.engineered" data-type="check"> Foundation designed by an engineer</label>
     </details>
@@ -182,50 +149,9 @@
       <p class="note" id="stairNote"></p>
     </details>
 
-    <details><summary>Site photos &amp; sketch</summary>
-      <label>Rough sketch (photo or scan)<input type="file" accept="image/*" id="inSketch"></label>
-      <label>Site photos<input type="file" accept="image/*" multiple id="inPhotos"></label>
-      <div class="thumbs" id="thumbs"></div>
-      <p class="note">Photos and the sketch go on an extra sheet marked "reference only". They don't change the drawings.</p>
-    </details>
-
-    <details><summary>Labour</summary>
-      <label class="check"><input type="checkbox" data-k="labour.on" data-type="check"> Show a labour line in the budget</label>
-      <div class="row2 labour-only">
-        <label>Rate ($ per hour)<input type="number" step="1" min="0" inputmode="decimal" data-k="labour.rate" data-type="num" placeholder="enter your rate"></label>
-        <label>Hours<input type="number" step="1" min="0" inputmode="numeric" data-k="labour.hours" data-type="num" id="inHours"></label>
-      </div>
-      <p class="note labour-only" id="labourNote"></p>
-      <details class="labour-only sub"><summary>Hour factors (placeholders, set your own)</summary>
-        <div class="row2">
-          <label>Hours per sq.ft of deck<input type="number" step="0.01" data-k="labour.factors.area" data-type="num"></label>
-          <label>Hours per footing<input type="number" step="0.25" data-k="labour.factors.footing" data-type="num"></label>
-          <label>Hours per lin.ft of guard<input type="number" step="0.05" data-k="labour.factors.guard" data-type="num"></label>
-          <label>Hours per stair riser<input type="number" step="0.25" data-k="labour.factors.riser" data-type="num"></label>
-          <label>Hours per landing<input type="number" step="0.5" data-k="labour.factors.landing" data-type="num"></label>
-        </div>
-      </details>
-    </details>
-
-    <details><summary>Prices &amp; assumptions</summary>
-      <p class="note">Default prices are retailer website prices read 14 Nov 2026. Type your supplier's price to replace one. Leave it blank to use the default.</p>
-      <div id="priceList" class="prices"></div>
-      <div class="row2">
-        <label>Concrete per 30 kg bag (ft³)<input type="number" step="0.05" data-k="assume.bagYield" data-type="num"></label>
-        <label>Waste allowance (%)<input type="number" step="1" data-k="assume.waste" data-type="num"></label>
-        <label>Fasteners per box<input type="number" step="1" data-k="assume.boxQty" data-type="num"></label>
-        <label>Guard section length (ft)<input type="number" step="1" data-k="assume.railSection" data-type="num"></label>
-        <label>Stringer spacing max (in)<input type="number" step="1" data-k="assume.stringerSp" data-type="num"></label>
-      </div>
-    </details>
-
-    <details><summary>Notes &amp; output</summary>
+    <details><summary>Notes &amp; paper</summary>
       <label>Extra note on the framing sheet<textarea rows="3" data-k="project.notes"></textarea></label>
       <label>Paper<select data-k="out.paper"><option value="tabloid">11×17 (Tabloid), full scale</option><option value="letter">8.5×11 (Letter), reduced</option></select></label>
-      <label class="check"><input type="checkbox" data-k="out.budget" data-type="check"> Include material &amp; budget sheet</label>
-      <label class="check"><input type="checkbox" data-k="out.checks" data-type="check"> Include design checks &amp; City deck checklist sheet</label>
-      <button type="button" class="ghost wide" id="btn3View">Export City 3-view set (plan, front, side)</button>
-      <button type="button" class="ghost wide" id="btnSplit">Export as 2 files: PDF2 site plan + PDF3 building plans</button>
       <button type="button" class="ghost wide danger" id="btnReset">Reset to the sample deck</button>
     </details>
   </form>

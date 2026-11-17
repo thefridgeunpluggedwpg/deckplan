@@ -1,4 +1,4 @@
-/* DeckPlan engine: units, code checks (City of Winnipeg "Decks" guide, Oct 2025), framing geometry, material take-off.
+/* DeckPlan engine: units, code checks (City of Winnipeg "Decks" guide, Oct 2025), framing geometry (drawings only; no material list).
    Geometry is in feet unless a name ends in In (inches). Plan axes: X along the house wall, Y away from the house. */
 (function () {
   const DP = (window.DP = window.DP || {});
@@ -68,6 +68,20 @@
   }
   DP.parseBeam = parseBeam;
   const stock = (len, list = [8, 10, 12, 14, 16, 20]) => list.find((x) => x >= len - 1e-6) || null;
+
+  /* Johnny's foundation rule (15 Nov 2026): permit decks over 2'-0" use Gary Taylor helical piles (certified installer). Pylex only on decks 2'-0" or lower. */
+  DP.pileKind = function (fo) {
+    const maker = String((fo && fo.pileMaker) || '').trim();
+    const pylex = /pylex/i.test(maker), gary = /gary\s*taylor/i.test(maker);
+    let short = 'SCREW PILE', long = 'SCREW PILE';
+    if (fo && fo.type === 'sonotube') { short = (fo.dia || 10) + '" DIA. CONC. PIER'; long = (fo.dia || 10) + '" DIA. CONCRETE PIER (SONOTUBE)'; }
+    else if (fo && fo.type === 'pad') { short = 'CONC. SURFACE PAD'; long = 'CONCRETE SURFACE PAD'; }
+    else if (gary) { short = 'GARY TAYLOR HELICAL PILE'; long = 'GARY TAYLOR HELICAL PILE, CERTIFIED INSTALLER'; }
+    else if (pylex) { short = 'PYLEX SCREW PILE'; long = 'PYLEX SCREW PILE'; }
+    else if (maker) { short = 'SCREW PILE, ' + maker.toUpperCase(); long = 'SCREW PILE, ' + maker.toUpperCase(); }
+    if (fo && fo.type === 'screwpile' && fo.pileModel && !new RegExp(fo.pileModel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(long)) long += ' ' + fo.pileModel;
+    return { maker, pylex, gary, short, long };
+  };
 
   /* ---------- stair profile: treads and landing along the run (h from the deck edge) ---------- */
   DP.stairProfile = function (stair, H) {
@@ -149,7 +163,7 @@
 
   /* ---------- main compute ---------- */
   DP.compute = function (st) {
-    const d = st.deck, f = st.framing, fo = st.found, g = st.guard, sr = st.stairs, dk = st.decking, site = st.site;
+    const d = st.deck, f = st.framing, fo = st.found, g = st.guard, sr = st.stairs, dk = st.decking;
     const C = DP.CODE;
     const L = DP.parseLen(d.L), W = DP.parseLen(d.W), H = DP.parseLen(d.H);
     const attached = d.attach === 'attached';
@@ -242,7 +256,7 @@
       if (side === 'front') stair.rect = { x: o2, y: ep, w: ws, h: prof.total };
       else if (side === 'left') stair.rect = { x: ep - prof.total, y: o2, w: prof.total, h: ws };
       else stair.rect = { x: ep, y: o2, w: prof.total, h: ws };
-      // flights for checks / take-off: [risers, treads, top height]
+      // flights for checks: [risers, treads, top height]
       stair.flights = stair.landing ? [{ nR: stair.n1, nT: stair.n1 - 1, top: H, bottom: stair.landing.H }, { nR: stair.n2, nT: stair.n2 - 1, top: stair.landing.H, bottom: 0 }] : [{ nR, nT: nR - 1, top: H, bottom: 0 }];
       if (stair.landing) {
         const lst = prof.steps.find((x) => x.landing);
@@ -259,6 +273,20 @@
         stair.landing.zone = landing;
         footings.push(...lz.footings);
       }
+      // Stair foot piles (Johnny 15 Nov 2026): a stair about 4'-0" wide sits on 2 piles; a larger stair gets 3. The exact cutoff for 3 is TBD, so 3-pile stairs are VERIFY.
+      const nSP = ws > 4 + 1e-6 ? 3 : 2;
+      const inset = Math.min(0.5, Math.max(0.2, ws / 6));
+      stair.footings = [];
+      for (let i = 0; i < nSP; i++) {
+        const across = inset + (nSP === 1 ? 0 : (i / (nSP - 1)) * (ws - 2 * inset));
+        let x, y;
+        if (side === 'front') { x = o2 + across; y = ep + prof.total; }
+        else if (side === 'left') { x = ep - prof.total; y = o2 + across; }
+        else { x = ep + prof.total; y = o2 + across; }
+        stair.footings.push({ x, y, zone: 'ST', load: Math.round((ws * Math.min(3, prof.total) * 50) / nSP) });
+      }
+      stair.nPiles = nSP;
+      footings.push(...stair.footings);
     }
     const maxLoad = Math.max(...footings.map((x) => x.load));
 
@@ -286,14 +314,6 @@
       .filter((o) => isFinite(o.at) && isFinite(o.w) && o.w > 0);
     openings.forEach((o) => { o.mark = (o.type === 'door' ? 'D' : 'W') + (openings.filter((p) => p.type === o.type).indexOf(o) + 1); if (!isFinite(o.h) || o.h <= 0) o.h = o.type === 'door' ? 80 / 12 : 2; });
 
-    // site
-    const lotW = DP.parseLen(site.lotW), lotD = DP.parseLen(site.lotD);
-    const hW = DP.parseLen(site.houseW), hD = DP.parseLen(site.houseD);
-    const hFront = DP.parseLen(site.frontSB), hLeft = DP.parseLen(site.leftSB);
-    const dOff = DP.parseLen(d.offset) || 0;
-    const deckSite = { x: hLeft + dOff, y: hFront + hD + (attached ? 0 : DP.parseLen(d.gap) || 0) };
-    const sideL = deckSite.x, sideR = lotW - deckSite.x - L, rearD = lotD - deckSite.y - Wt;
-    const houseRear = lotD - hFront - hD;
     const area = zones.reduce((a, z) => a + z.Lx * z.Wy, 0);
     const landingArea = landing ? landing.rect.w * landing.rect.h : 0;
 
@@ -331,6 +351,22 @@
     else add('Footing depth (frost)', "6'-0\" (1.8 m) min. below grade", DP.fmt(pierDepth), pierDepth >= C.frostDepthFt - 0.01 ? 'OK' : 'NG', SRC_W + ' p.4');
     if (fo.type === 'sonotube' && deepReq) add('Concrete pier design', 'Engineered pier or screw piles', fo.dia + '" dia. pier', 'VERIFY', SRC_W + ' p.4');
     if (fo.type === 'screwpile') add('Screw pile capacity', 'Tested capacity > footing load', 'max ' + maxLoad + ' lb per pile', 'VERIFY', SRC_W + ' p.5');
+    // Stricter of Johnny's SOP and the City guide: permit decks over 2'-0" must use Gary Taylor helical piles; Pylex only on decks 2'-0" or lower.
+    const SRC_J = "Johnny's SOP (15 Nov 2026)";
+    const pk = DP.pileKind(fo);
+    if (H > 2 + 1e-9) {
+      const prov = fo.type === 'screwpile' ? (pk.maker || 'screw pile, maker not entered') : fo.type;
+      const okGary = fo.type === 'screwpile' && pk.gary && !pk.pylex;
+      const ng = fo.type !== 'screwpile' || pk.pylex;
+      add('Foundation (permit deck over 2\'-0")', 'Gary Taylor helical piles, certified installer', prov, okGary ? 'OK' : ng ? 'NG' : 'VERIFY', SRC_J);
+    } else if (fo.type === 'screwpile' && pk.pylex) {
+      add('Foundation (deck 2\'-0" or lower)', 'Pylex piles permitted at this height', 'Pylex', 'OK', SRC_J);
+    } else if (fo.type === 'screwpile' && pk.gary) {
+      add('Foundation (deck 2\'-0" or lower)', 'Pylex or helical piles', 'Gary Taylor helical', 'OK', SRC_J);
+    }
+    if (stair && stair.footings && stair.footings.length) {
+      add('Stair foot piles', "2 piles when stair is about 4'-0\" wide; 3 when larger (cutoff TBD)", stair.nPiles + ' piles, stair ' + DP.fmt(stair.ws) + ' wide', stair.nPiles === 2 ? 'OK' : 'VERIFY', SRC_J);
+    }
     add('Guard required', 'Deck > 600 mm (2\'-0") above grade', guardReq ? 'Yes' : 'No', 'INFO', SRC_W + ' p.8');
     if (guardOn) {
       add('Guard height', HIn > C.guardHiTriggerIn ? '1070 mm (42") min.' : '900 mm (36") min.', DP.fmtIn(guardHIn), 'OK', SRC_W + ' p.8');
@@ -350,177 +386,21 @@
       if (sr.landing && sr.landing.on && !stair.landing) add('Stair landing', 'Needs 4 or more risers', stair.nR + ' risers: landing skipped', 'INFO', 'DeckPlan');
     }
     if (shape) add('L-shaped deck', 'Each zone framed per Tables 2/3', zones.length + ' framing zones, rims bolted at joint', 'VERIFY', SRC_W + ' Tables 2–3');
-    if (HIn > 24) add('Rear yard setback', "7.5 m (25'-0\") min.", DP.fmt(rearD), rearD >= C.rearYardFt - 0.01 ? 'OK' : 'NG', SRC_W + ' Fig.1');
-    const sideReq = DP.parseLen(site.sideReq);
-    add('Side yard setbacks', isFinite(sideReq) ? DP.fmt(sideReq) + ' min. (zoning)' : 'Same as dwelling (zoning)', DP.fmt(Math.min(sideL, sideR)), isFinite(sideReq) ? (Math.min(sideL, sideR) >= sideReq ? 'OK' : 'NG') : 'VERIFY', SRC_W + ' Fig.1');
     if (attached) add('Ledger attachment', 'Not in City guide', st.ledger.spacing + '" o.c. staggered', 'VERIFY', 'MBC Part 9');
     const doors = openings.filter((o) => o.type === 'door'), wins = openings.filter((o) => o.type === 'window');
     add('Doors to deck shown', 'Location of doors accessing deck', doors.length ? doors.map((o) => o.mark).join(', ') : 'none entered', doors.length ? 'OK' : 'VERIFY', 'MB ITS Guide 06 s.2');
     add('Basement windows in deck area', 'Location; note if bedroom', wins.length ? wins.map((o) => o.mark + (o.bedroom ? ' (bedroom)' : '')).join(', ') : 'none entered', wins.length ? 'OK' : 'INFO', 'MB ITS Guide 06 s.2');
-    wins.filter((o) => o.bedroom).forEach((o) => add('Bedroom window ' + o.mark + ' under deck', 'Egress clearance per MBC', 'see A3', 'VERIFY', 'MB ITS Guide 06 s.2 / MBC'));
-    if (site.overhead) add('Overhead power lines', '3.5 m (11\'-6") min. above deck', 'see site plan', 'VERIFY', SRC_W + ' p.10');
+    wins.filter((o) => o.bedroom).forEach((o) => add('Bedroom window ' + o.mark + ' under deck', 'Egress clearance per MBC', 'see elevations', 'VERIFY', 'MB ITS Guide 06 s.2 / MBC'));
     if (dk.material === 'composite') add('Decking vs joist spacing', 'Per decking maker', spacing + '" o.c.', 'VERIFY', SRC_W + ' p.7');
 
     const model = {
       L, W, Wt, H, R: sec.R, S: sec.S, attached, perp, jt, jdIn, beam, postIn, deckTIn, spacing, cant, beamOH, postMax,
       topDeck, topJoist, botJoist, beamTop, beamBot, useLedger: sec.useLedger, anyLedger: useLedger, allowedIn, clear, nSpans: sec.nSpans, beamsV: sec.beamsV, sjl: sec.sjl, sjlMax,
       postsU: sec.postsU, postSp, nPosts: sec.nPosts, joistsU: sec.joistsU, nJ, joistLen: sec.joistLen, footings, maxLoad, deepReq, pierAbove, pierDepth, pierTop, postH, braceAt, braced: postH > braceAt,
-      guardReq, guardOn, guardHIn, guardRuns, landingRuns, guardLF, stair, landing, area, landingArea, shape, poly, edges, zones, sec, openings, heights,
-      lotW, lotD, hW, hD, hFront, hLeft, deckSite, sideL, sideR, rearD, houseRear, checks, st, ohMax,
+      guardReq, guardOn, guardHIn, guardRuns, landingRuns, guardLF, stair, landing, stairFootings: (stair && stair.footings) || [], area, landingArea, shape, poly, edges, zones, sec, openings, heights,
+      checks, st, ohMax,
     };
-    model.materials = DP.takeoff(model, st);
     return model;
   };
 
-  /* ---------- material take-off ---------- */
-  // Default unit prices: online prices read 14 Nov 2026 (CAD, before tax). Lumber per-foot prices are derived from the 12 ft piece.
-  DP.PRICE_SOURCES = {
-    pt2x8_12: { price: 27.35, src: 'RONA online, 2x8x12 brown PT, read 14 Nov 2026', url: 'https://www.rona.ca/en/product/2-in-x-8-in-x-12-ft-brown-pressure-treated-wood-120-042-84895032' },
-    pt2x12_12: { price: 50.98, src: 'RONA online, 2x12x12 brown PT, read 14 Nov 2026', url: 'https://www.rona.ca/en/product/2-in-x-12-in-x-12-ft-brown-pressure-treated-wood-120-081-84895040' },
-    pt6x6_8: { price: 40.19, src: 'RONA online, 6x6x8 brown PT, read 14 Nov 2026', url: 'https://www.rona.ca/en/product/6-in-x-6-in-x-8-ft-brown-pressure-treated-wood-120-160-84895046' },
-    comp_12: { price: 41.49, src: 'RONA online, TimberTech Prime 1x5.5x12 grooved, read 14 Nov 2026', url: 'https://www.rona.ca/en/product/timbertech-prime-composite-grooved-deck-board-1-in-x-55-in-x-12-ft-maritime-grey-esgv5412mg-85685257' },
-    sono10: { price: 37.79, src: 'RONA online, 10" x 12\' forming tube, read 14 Nov 2026', url: 'https://www.rona.ca/en/product/contractor-solutions-can-cell-waxed-building-form-10-in-x-12-ft-cardboard-redi10-35475020' },
-    conc30: { price: 13.55, src: 'Home Depot Canada online, Sakrete Fast Set 30 kg, read 14 Nov 2026', url: 'https://www.homedepot.ca/product/sakrete-fast-set-30-kg-multi-purpose-fast-setting-premixed-cement-mix-for-same-day-construction/1000109148' },
-    ledgerlok: { price: 4.16, src: 'Home Depot Canada online, FastenMaster LedgerLOK 5" (each), read 14 Nov 2026', url: 'https://www.homedepot.ca/product/fastenmaster-5-inch-hex-washer-head-ledgerlok-r-structural-wood-screw-with-galvanized-epoxy-coating-1pc/1001002641' },
-    abu66: { price: 77.2, src: 'Home Depot Canada online, Simpson ABU66Z post base, read 14 Nov 2026', url: 'https://www.homedepot.ca/product/simpson-strong-tie-abu-zmax-galvanized-adjustable-standoff-post-base-for-6x6/1001400168' },
-    alum6x36: { price: 237.0, src: 'Home Depot Canada online, Peak RailBlazers 6 ft x 36" panel, read 14 Nov 2026', url: 'https://www.homedepot.ca/product/peak-railblazers-6-ft-w-x-36-in-h-matte-black-aluminum-deck-railing-pre-assembled-panel-for-36-in-high-system/1001919501' },
-  };
-  function lumberPrice(size, len) {
-    const P = DP.PRICE_SOURCES;
-    if (size === '2x8') return { price: +((P.pt2x8_12.price / 12) * len).toFixed(2), src: len === 12 ? P.pt2x8_12.src : 'Est. ' + len + ' ft from 12 ft price (' + P.pt2x8_12.src + ')' };
-    if (size === '2x12') return { price: +((P.pt2x12_12.price / 12) * len).toFixed(2), src: len === 12 ? P.pt2x12_12.src : 'Est. ' + len + ' ft from 12 ft price (' + P.pt2x12_12.src + ')' };
-    if (size === '6x6') return { price: +((P.pt6x6_8.price / 8) * len).toFixed(2), src: len === 8 ? P.pt6x6_8.src : 'Est. ' + len + ' ft from 8 ft price (' + P.pt6x6_8.src + ')' };
-    return { price: null, src: 'Enter price' };
-  }
-  // Pieces of stock length for a list of run lengths (each run cut from the shortest stock that fits, or 16' pieces spliced over supports).
-  function pieces(runs, list = [8, 10, 12, 14, 16, 20]) {
-    const by = {};
-    runs.forEach(([len, n]) => {
-      const L1 = stock(len, list);
-      if (L1) by[L1] = (by[L1] || 0) + n;
-      else by[16] = (by[16] || 0) + n * Math.ceil(len / 16);
-    });
-    return Object.keys(by).map(Number).sort((a, b) => b - a).map((len) => ({ len, n: by[len] }));
-  }
-  DP.takeoff = function (m, st) {
-    const items = [];
-    const P = DP.PRICE_SOURCES;
-    const a = st.assume;
-    const add = (key, item, spec, qty, unit, pr) => { if (qty > 0) items.push({ key, item, spec, qty, unit, price: pr ? pr.price : null, src: pr ? pr.src : 'Enter price' }); };
-    const nF = m.footings.length;
-    const fo = st.found;
-    const zonesAll = m.zones.concat(m.landing ? [m.landing] : []);
-    if (fo.type === 'sonotube') {
-      const len = m.pierDepth + m.pierAbove;
-      const per = Math.max(1, Math.floor(12 / len));
-      add('sono', 'Footing form tube', fo.dia + '" dia. × 12\' (cut ' + DP.fmt(len) + ' per pier)', Math.ceil(nF / per), 'ea', +fo.dia === 10 ? P.sono10 : null);
-      const vol = nF * Math.PI * Math.pow(+fo.dia / 24, 2) * len;
-      add('conc', 'Concrete mix, 30 kg bags', vol.toFixed(1) + ' ft³ total @ ' + a.bagYield + ' ft³/bag', Math.ceil(vol / +a.bagYield), 'bag', P.conc30);
-      add('anchor', 'Post base, adjustable standoff', 'Simpson ABU66Z or equal, cast in pier', nF, 'ea', st.framing.post === '6x6' ? P.abu66 : null);
-    } else if (fo.type === 'screwpile') {
-      add('pile', 'Screw pile, installed', 'Tested pile below frost, max load ' + m.maxLoad + ' lb', nF, 'ea', null);
-      add('anchor', 'Pile cap / post bracket', 'Per pile supplier', nF, 'ea', null);
-    } else {
-      add('pad', 'Concrete surface pad', 'Per CoW Table 1', nF, 'ea', null);
-      add('anchor', 'Post base', 'Per pad', nF, 'ea', null);
-    }
-    // posts (deck and landing heights differ)
-    const postRuns = [[m.postH + 0.25, m.zones.reduce((s2, z) => s2 + z.footings.length, 0)]];
-    if (m.landing) postRuns.push([m.landing.postH + 0.25, m.landing.footings.length]);
-    pieces(postRuns, [8, 10, 12, 14, 16]).forEach((pc, i) => add('post' + (i ? i + 1 : ''), 'Post, ' + st.framing.post + ' PT', 'Cut to length on site (deck ' + DP.fmt(m.postH) + (m.landing ? ', landing ' + DP.fmt(m.landing.postH) : '') + ')', pc.n, pc.len + "' pc", lumberPrice(st.framing.post, pc.len)));
-    add('postcap', 'Post cap / beam connector', 'Galvanized, sized for ' + m.beam.label, nF, 'ea', null);
-    if (m.braced) {
-      const nb = m.zones.reduce((s2, z) => s2 + z.footings.length, 0) * 2 + (m.landing && m.landing.postH > m.braceAt ? m.landing.footings.length * 2 : 0);
-      add('brace', 'Knee braces, 2x6 PT', '2 per post (beam line + joist direction), bolted; size VERIFY', Math.ceil(nb / 2), "8' pc", null);
-    }
-    // beams
-    const beamPcs = pieces(zonesAll.map((z) => [z.R, z.beamsV.length * m.beam.plies]));
-    beamPcs.forEach((pc, i) => add('beam' + (i ? i + 1 : ''), 'Beam plies, ' + m.beam.size + ' PT', m.beam.label + ', ' + zonesAll.reduce((s2, z) => s2 + z.beamsV.length, 0) + ' beam line(s)', pc.n, pc.len + "' pc", lumberPrice(m.beam.size, pc.len)));
-    // joists
-    const jPcs = pieces(zonesAll.map((z) => [z.joistLen, z.nJ]), [8, 10, 12, 14, 16, 20]);
-    const nJall = zonesAll.reduce((s2, z) => s2 + z.nJ, 0);
-    jPcs.forEach((pc, i) => add('joist' + (i ? i + 1 : ''), 'Joists, ' + st.framing.joist + ' PT', nJall + ' total @ ' + st.framing.spacing + '" o.c.' + (zonesAll.length > 1 ? ', ' + zonesAll.length + ' zones' : ''), pc.n, pc.len + "' pc", lumberPrice(st.framing.joist, pc.len)));
-    // rims: outer rim of each zone (and back rim where no ledger)
-    const rimRuns = zonesAll.map((z) => [z.R, z.useLedger ? 1 : 2]);
-    pieces(rimRuns).forEach((pc, i) => add('rim' + (i ? i + 1 : ''), 'Rim / band joist, ' + st.framing.joist + ' PT', (zonesAll.length > 1 ? 'Outer rims of ' + zonesAll.length + ' framed zones; double at zone joints, through-bolted' : 'Outer rims (end joists + rim)'), pc.n, pc.len + "' pc", lumberPrice(st.framing.joist, pc.len)));
-    if (m.anyLedger) {
-      const ledL = m.zones.filter((z) => z.useLedger).reduce((s2, z) => s2 + z.R, 0);
-      pieces([[ledL, 1]]).forEach((pc) => add('ledger', 'Ledger, ' + st.framing.joist + ' PT', DP.fmt(ledL) + ' along house', pc.n, pc.len + "' pc", lumberPrice(st.framing.joist, pc.len)));
-      const nLed = 2 * Math.ceil((ledL * 12) / +st.ledger.spacing);
-      add('ledgerfast', 'Ledger fasteners', st.ledger.fastener + ', staggered 2 rows @ ' + st.ledger.spacing + '" o.c. (verify)', nLed, 'ea', /ledgerlok/i.test(st.ledger.fastener) ? P.ledgerlok : null);
-      add('flash', 'Ledger flashing', 'Galv./alum. Z-flashing, 10 ft lengths', Math.ceil((ledL + 1) / 10), 'pc', null);
-      add('hanger', 'Joist hangers', 'Face-mount, ' + st.framing.joist + ', galvanized for PT lumber', m.zones.filter((z) => z.useLedger).reduce((s2, z) => s2 + z.nJ, 0), 'ea', null);
-    }
-    add('tie', 'Joist-to-beam connectors', 'Galvanized ties at each joist/beam crossing', zonesAll.reduce((s2, z) => s2 + z.nJ * z.beamsV.length, 0), 'ea', null);
-    if (m.zones.length > 1) add('bolt', 'Through-bolts at zone joint', '1/2" galv. bolts, washers, nuts; 2 @ 16" o.c. (VERIFY)', 2 * Math.ceil(((m.perp ? m.shape.d + m.W : m.shape.w) * 12) / 16), 'ea', null);
-    // decking (lineal feet from area)
-    const dk = st.decking;
-    const boardW = +dk.boardW || 5.5, gap = +dk.gap || 0.1875;
-    const runLen = m.perp ? m.L : m.Wt;
-    const dLen = stock(Math.min(runLen, 20), [12, 16, 20]) || 20;
-    const waste = 1 + (+a.waste || 0) / 100;
-    const totArea = m.area + m.landingArea;
-    const lf = (totArea * 12) / (boardW + gap);
-    let treadBoards = 0;
-    if (m.stair) {
-      const perTread = Math.ceil(m.stair.runIn / (boardW + gap));
-      const fit = Math.max(1, Math.floor(dLen / m.stair.ws));
-      treadBoards = Math.ceil((m.stair.nT * perTread) / fit);
-    }
-    const deckName = { composite: 'Composite deck boards', pt: 'PT deck boards 5/4x6', cedar: 'Cedar deck boards' }[dk.material] || 'Deck boards';
-    const dpr = dk.material === 'composite' && dLen === 12 ? P.comp_12 : dk.material === 'composite' ? { price: +((P.comp_12.price / 12) * dLen).toFixed(2), src: 'Est. ' + dLen + ' ft from 12 ft price (' + P.comp_12.src + ')' } : null;
-    add('deck', deckName, Math.round(lf) + ' lin.ft for ' + Math.round(totArea) + ' sq.ft + ' + (m.stair ? m.stair.nT + ' treads' : '0 treads') + ', +' + a.waste + '% waste', Math.ceil((lf / dLen + treadBoards) * waste), dLen + "' pc", dpr);
-    const rows = Math.ceil(((m.perp ? m.Wt : m.L) * 12) / (boardW + gap));
-    const fastPer = 2 * nJall * Math.ceil(rows * 0.8);
-    add('deckfast', dk.material === 'composite' ? 'Hidden fasteners / deck screws' : 'Deck screws', '≈' + fastPer + ' fasteners (2 per board per joist) in boxes of ' + a.boxQty, Math.ceil(fastPer / +a.boxQty), 'box', null);
-    // guards (deck + landing)
-    const runs = (m.guardOn ? m.guardRuns : []).concat(m.landingRuns || []);
-    if (runs.length) {
-      const secLen = +a.railSection || 6;
-      let sections = 0, posts = 0;
-      runs.forEach((r) => { const k = Math.ceil((r.to - r.from) / secLen - 1e-9); sections += k; posts += k + 1; });
-      const gt = st.guard.type;
-      if (gt === 'wood') {
-        add('railpost', 'Guard posts, 4x4 PT', 'Bolted to rim, max ' + secLen + "' o.c.", posts, "8' pc", null);
-        add('rail', 'Top & bottom rails, 2x4 PT', DP.fmt(m.guardLF) + ' of guard × 2', Math.ceil((m.guardLF * 2 * waste) / 8), "8' pc", null);
-        add('cap', 'Rail cap, 2x6 PT', DP.fmt(m.guardLF), Math.ceil((m.guardLF * waste) / 8), "8' pc", null);
-        add('balu', 'Balusters, 2x2 PT', '5 1/4" o.c. (3 3/4" clear)', Math.ceil(((m.guardLF * 12) / 5.25) * waste), 'ea', null);
-      } else {
-        add('railsec', gt === 'glass' ? 'Glass guard panels' : 'Aluminum guard panels', secLen + "' × " + DP.fmtIn(m.guardHIn) + ' high', sections, 'ea', gt === 'alum' && m.guardHIn === 36 && secLen === 6 ? P.alum6x36 : null);
-        add('railpost', 'Guard posts + base plates', 'Per guard system maker', posts, 'ea', null);
-      }
-    }
-    if (m.stair) {
-      const s = m.stair;
-      const nStr = Math.ceil((s.ws * 12) / +a.stringerSp) + 1;
-      const fl = s.flights.map((x) => [Math.hypot((x.nR * s.riseIn) / 12, ((x.nT + 1) * s.runIn) / 12) + 1, nStr]);
-      pieces(fl, [8, 10, 12, 14, 16]).forEach((pc, i) => add('stringer' + (i ? i + 1 : ''), 'Stair stringers, 2x12 PT', nStr + ' per flight @ ' + a.stringerSp + '" o.c. max., ' + s.flights.length + ' flight(s), ' + s.nR + ' risers', pc.n, pc.len + "' pc", lumberPrice('2x12', pc.len)));
-      if (m.guardOn) add('stairrail', 'Stair guard / handrail', (s.guard ? 'Both sides, 36" above nosings' : 'One side') + (s.flights.length > 1 ? ', 2 flights' : ''), (s.guard ? 2 : 1) * s.flights.length, 'side', null);
-      add('landpad', 'Landing at stair foot', 'Concrete pad or pavers, ' + DP.fmt(s.ws + 1) + ' × 3\'-0"', 1, 'ea', null);
-    }
-    items.forEach((it, i) => { it.n = i + 1; const o = (st.prices || {})[it.key]; if (o !== undefined && o !== '' && o !== null) { it.price = +o; it.src = 'Entered by user'; } });
-    return items;
-  };
-  /* Labour: editable estimate (hours from deck size), never a quote. */
-  DP.labourEstimate = function (m, st) {
-    const lb = st.labour || {}, k = lb.factors || {};
-    const f = { area: +k.area, footing: +k.footing, guard: +k.guard, riser: +k.riser, landing: +k.landing };
-    const parts = [
-      ['deck framing + decking', m.area, 'sq.ft', f.area],
-      ['footings', m.footings.length, 'ea', f.footing],
-      ['guards', m.guardLF, 'lin.ft', f.guard],
-      ['stairs', m.stair ? m.stair.nR : 0, 'risers', f.riser],
-      ['landing', m.landing ? 1 : 0, 'ea', f.landing],
-    ].filter((p) => p[1] > 0 && isFinite(p[3]));
-    const estH = Math.round(parts.reduce((a, p) => a + p[1] * p[3], 0));
-    const hours = lb.hours !== '' && lb.hours != null && isFinite(+lb.hours) ? +lb.hours : estH;
-    const rate = lb.rate !== '' && lb.rate != null && isFinite(+lb.rate) ? +lb.rate : null;
-    return { on: lb.on !== false, estH, hours, rate, amount: rate != null ? rate * hours : null, parts, overridden: hours !== estH };
-  };
-  DP.totals = function (items, lab) {
-    const sub = items.reduce((a, it) => a + (it.price != null ? it.price * it.qty : 0), 0);
-    const labour = lab && lab.on && lab.amount != null ? lab.amount : 0;
-    const gst = (sub + labour) * 0.05, pst = sub * 0.07;
-    return { sub, labour, gst, pst, total: sub + labour + gst + pst, missing: items.filter((i) => i.price == null).length, labourMissing: !!(lab && lab.on && lab.amount == null) };
-  };
 })();
