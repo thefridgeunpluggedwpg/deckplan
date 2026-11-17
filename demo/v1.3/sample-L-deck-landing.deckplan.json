@@ -54,7 +54,9 @@
   "shape": "L",
   "extSide": "right",
   "extW": "8'",
-  "extD": "8'"
+  "extD": "8'",
+  "raiseGrade": false,
+  "gradeRaise": "6\""
  },
  "openings": [
   {

@@ -60,6 +60,16 @@
     return (neg ? '-' : '') + (f ? f + "'-" + inch : inch);
   };
   DP.mm = (ft) => Math.round(ft * 304.8);
+  DP.heightPhrase = function (m) {
+    if (m && m.raiseOn) return DP.fmt(m.Hexist) + ' ABOVE EXISTING GRADE, ' + DP.fmt(m.Hfin) + ' ABOVE FINISHED GRADE';
+    return DP.fmt(m.H) + ' ABOVE GRADE';
+  };
+  DP.gradeRaiseNote = function (m) {
+    if (!(m && m.raiseOn)) return '';
+    const x = DP.fmtIn(m.raiseFt * 12);
+    const within = m.Hfin <= 2 + 1e-9 ? ' (TO WITHIN 2\'-0" OF DECK SURFACE)' : '';
+    return 'OWNER TO RAISE FINISHED GRADE ' + x + within + ' BEFORE COMPLETION; HEIGHTS MEASURED FROM FINISHED GRADE (VERIFY WITH CITY).';
+  };
 
   function parseBeam(s) {
     const m = String(s).match(/^(\d)-(2x\d+)$/);
@@ -165,7 +175,13 @@
   DP.compute = function (st) {
     const d = st.deck, f = st.framing, fo = st.found, g = st.guard, sr = st.stairs, dk = st.decking;
     const C = DP.CODE;
-    const L = DP.parseLen(d.L), W = DP.parseLen(d.W), H = DP.parseLen(d.H);
+    const L = DP.parseLen(d.L), W = DP.parseLen(d.W), H = DP.parseLen(d.H); // H = walking surface above existing grade (framing height)
+    const raiseWanted = !!d.raiseGrade;
+    const raiseAmt = DP.parseLen(d.gradeRaise);
+    const raiseOk = raiseWanted && isFinite(H) && isFinite(raiseAmt) && raiseAmt > 1e-6 && raiseAmt < H - 1e-6;
+    const raiseOn = raiseOk;
+    const raiseFt = raiseOn ? raiseAmt : 0;
+    const Hexist = H, Hfin = H - raiseFt, Hdec = raiseOn ? Hfin : H; // Hdec drives 2 ft permit / pile / guard decisions
     const attached = d.attach === 'attached';
     const perp = f.dir !== 'parallel';
     const [jt, jdIn] = LUMBER[f.joist];
@@ -224,31 +240,32 @@
     const footings = [];
     zones.forEach((z) => footings.push(...z.footings));
 
-    // guards
-    const HIn = H * 12;
-    const guardReq = HIn > C.guardReqIn;
+    // guards (height above finished grade when a raise is entered)
+    const HIn = H * 12, HdecIn = Hdec * 12;
+    const guardReq = HdecIn > C.guardReqIn;
     const guardOn = guardReq || g.always;
-    const guardHIn = HIn > C.guardHiTriggerIn ? C.guardHighIn : C.guardLowIn;
+    const guardHIn = HdecIn > C.guardHiTriggerIn ? C.guardHighIn : C.guardLowIn;
 
     // stairs
     let stair = null, landing = null;
     if (sr.on) {
-      const nR = Math.max(1, Math.ceil(HIn / (+sr.targetRise || 7.5) - 1e-9));
-      const riseIn = HIn / nR, runIn = +sr.run || 10.5;
+      const nR = Math.max(1, Math.ceil(HdecIn / (+sr.targetRise || 7.5) - 1e-9));
+      const riseIn = HdecIn / nR, runIn = +sr.run || 10.5;
       const ws = DP.parseLen(sr.width) || 3.5, off = DP.parseLen(sr.offset) || 0;
       const side = sr.side;
       // edge that holds the stair
       const cand = edges.filter((e) => e.side === side && !(attached && e.side === 'back'));
       let edge = cand.find((e) => off >= e.from - 1e-6 && off + ws <= e.to + 1e-6) || cand.find((e) => off >= e.from - 1e-6 && off < e.to) || cand[0];
       const o2 = edge ? Math.min(Math.max(off, edge.from), Math.max(edge.from, edge.to - ws)) : off;
-      stair = { side, nR, riseIn, runIn, ws, off: o2, edge, guard: HIn > C.guardReqIn, handrail: nR > 3 };
+      stair = { side, nR, riseIn, runIn, ws, off: o2, edge, guard: HdecIn > C.guardReqIn, handrail: nR > 3 };
       let wantLanding = !!(sr.landing && sr.landing.on) && nR >= 4;
       if (wantLanding) {
         const n2 = Math.max(2, Math.min(nR - 2, Math.round(nR * (+sr.landing.frac || 0.5))));
         const ld = Math.max(ws, DP.parseLen(sr.landing.depth) || 4);
         stair.n1 = nR - n2; stair.n2 = n2; stair.landing = { depth: ld, H: (n2 * riseIn) / 12 };
       }
-      const prof = DP.stairProfile(stair, H);
+      const prof = DP.stairProfile(stair, Hdec);
+      if (raiseFt) prof.steps.forEach((x) => { x.z += raiseFt; });
       stair.nT = prof.steps.filter((x) => !x.landing).length;
       stair.totalRun = prof.total; stair.profile = prof;
       const ep = edge ? edge.pos : side === 'front' ? Wt : side === 'left' ? 0 : L;
@@ -257,7 +274,7 @@
       else if (side === 'left') stair.rect = { x: ep - prof.total, y: o2, w: prof.total, h: ws };
       else stair.rect = { x: ep, y: o2, w: prof.total, h: ws };
       // flights for checks: [risers, treads, top height]
-      stair.flights = stair.landing ? [{ nR: stair.n1, nT: stair.n1 - 1, top: H, bottom: stair.landing.H }, { nR: stair.n2, nT: stair.n2 - 1, top: stair.landing.H, bottom: 0 }] : [{ nR, nT: nR - 1, top: H, bottom: 0 }];
+      stair.flights = stair.landing ? [{ nR: stair.n1, nT: stair.n1 - 1, top: H, bottom: stair.landing.H + raiseFt }, { nR: stair.n2, nT: stair.n2 - 1, top: stair.landing.H + raiseFt, bottom: raiseFt }] : [{ nR, nT: nR - 1, top: H, bottom: raiseFt }];
       if (stair.landing) {
         const lst = prof.steps.find((x) => x.landing);
         const a = lst.h0, b = lst.h1;
@@ -265,7 +282,7 @@
         if (side === 'front') r = { x0: o2, y0: ep + a, Lx: ws, Wy: b - a };
         else if (side === 'left') r = { x0: ep - b, y0: o2, Lx: b - a, Wy: ws };
         else r = { x0: ep + a, y0: o2, Lx: b - a, Wy: ws };
-        const lH = stair.landing.H, lhz = heights(lH);
+        const lH = stair.landing.H, lhz = heights(lH + raiseFt); // landing framed at its height above existing grade
         // landing frame: joists run with the stair, beams under both ends of the landing
         const lperp = side === 'front';
         const lz = frameZone({ id: 'LD', ...r, ledger: false, ...lhz }, { ...ctx, perp: lperp, cant: Math.min(cant, 0.5), beamOH: Math.min(beamOH, 0.5) });
@@ -332,7 +349,7 @@
     const checks = [];
     const add = (item, req, prov, status, src) => checks.push({ item, req, prov, status, src });
     const SRC_W = 'CoW Decks guide';
-    add('Permit needed', "Area > 36 sq.ft or height > 2'-0\"", Math.round(area) + ' sq.ft, ' + DP.fmt(H) + ' high', 'INFO', SRC_W + ' p.1');
+    add('Permit needed', "Area > 36 sq.ft or height > 2'-0\"", Math.round(area) + ' sq.ft, ' + (raiseOn ? DP.fmt(Hexist) + ' above existing, ' + DP.fmt(Hfin) + ' above finished grade' : DP.fmt(H) + ' high'), 'INFO', SRC_W + ' p.1');
     const zTag = (z) => (zones.length > 1 ? ' [' + z.id + ']' : '');
     zones.forEach((z) => {
       if (allowedIn) add('Joist span (' + f.joist + ' @ ' + spacing + '" o.c.)' + zTag(z), DP.fmt(allowedIn / 12) + ' max.', DP.fmt(z.clear) + (z.nSpans > 1 ? ' (' + z.nSpans + ' spans)' : ''), z.clear * 12 <= allowedIn + 0.01 ? 'OK' : 'NG', SRC_W + ' Table 3');
@@ -359,28 +376,33 @@
     add('Post width vs beam width', DP.fmtIn(beam.wIn) + ' min.', f.post + ' (' + DP.fmtIn(postIn) + ')', postIn >= beam.wIn ? 'OK' : 'NG', SRC_W + ' p.5');
     if (postH > braceAt) add('Post height over 5\'-0" (1.5 m)', 'Braced or anchored', 'knee braces, size VERIFY', 'VERIFY', SRC_W + ' p.5');
     if (fo.type === 'pad') add('Surface pads', 'Freestanding, 592 sq.ft max., joists 4\'-3" max. above grade', (attached ? 'attached' : 'freestanding') + ', ' + DP.fmt(botJoist), !deepReq && area <= 592 ? 'OK' : 'NG', SRC_W + ' p.4');
-    else add('Footing depth (frost)', "6'-0\" (1.8 m) min. below grade", DP.fmt(pierDepth), pierDepth >= C.frostDepthFt - 0.01 ? 'OK' : 'NG', SRC_W + ' p.4');
+    else add('Footing depth (frost)', "6'-0\" (1.8 m) min. below existing undisturbed grade", DP.fmt(pierDepth), pierDepth >= C.frostDepthFt - 0.01 ? 'OK' : 'NG', SRC_W + ' p.4');
     if (fo.type === 'sonotube' && deepReq) add('Concrete pier design', 'Engineered pier or screw piles', fo.dia + '" dia. pier', 'VERIFY', SRC_W + ' p.4');
-    if (fo.type === 'screwpile') add('Screw pile capacity', 'Tested capacity > footing load', 'max ' + maxLoad + ' lb per pile', 'VERIFY', SRC_W + ' p.5');
-    // Stricter of Johnny's SOP and the City guide: permit decks over 2'-0" must use Gary Taylor helical piles; Pylex only on decks 2'-0" or lower.
+    if (fo.type === 'screwpile') add('Screw pile capacity', 'Tested capacity > footing load', 'max ' + maxLoad + ' lb per pile', 'INFO', SRC_W + ' p.5');
+    // Stricter of Johnny's SOP and the City guide: permit decks over 2'-0" (above finished grade) must use Gary Taylor helical piles; Pylex only on decks 2'-0" or lower. Pile VERIFY items are INFO (low priority — Gary Taylor is used rarely).
     const SRC_J = "Johnny's SOP (15 Nov 2026)";
     const pk = DP.pileKind(fo);
-    if (H > 2 + 1e-9) {
+    const over2 = Hdec > 2 + 1e-9;
+    const foundLbl = over2 ? 'Foundation (permit deck over 2\'-0")' : 'Foundation (deck 2\'-0" or lower)';
+    const foundAt = raiseOn ? ' (measured to finished grade)' : '';
+    if (over2) {
       const prov = fo.type === 'screwpile' ? (pk.maker || 'screw pile, maker not entered') : fo.type;
       const okGary = fo.type === 'screwpile' && pk.gary && !pk.pylex;
       const ng = fo.type !== 'screwpile' || pk.pylex;
-      add('Foundation (permit deck over 2\'-0")', 'Gary Taylor helical piles, certified installer', prov, okGary ? 'OK' : ng ? 'NG' : 'VERIFY', SRC_J);
+      add(foundLbl + foundAt, 'Gary Taylor helical piles, certified installer', prov, okGary ? 'OK' : ng ? 'NG' : 'INFO', SRC_J);
     } else if (fo.type === 'screwpile' && pk.pylex) {
-      add('Foundation (deck 2\'-0" or lower)', 'Pylex piles permitted at this height', 'Pylex', 'OK', SRC_J);
+      add(foundLbl + foundAt, 'Pylex piles permitted at this height', 'Pylex', 'OK', SRC_J);
     } else if (fo.type === 'screwpile' && pk.gary) {
-      add('Foundation (deck 2\'-0" or lower)', 'Pylex or helical piles', 'Gary Taylor helical', 'OK', SRC_J);
+      add(foundLbl + foundAt, 'Pylex or helical piles', 'Gary Taylor helical', 'OK', SRC_J);
     }
     if (stair && stair.footings && stair.footings.length) {
-      add('Stair foot piles', "2 piles when stair is about 4'-0\" wide; 3 when larger (cutoff TBD)", stair.nPiles + ' piles, stair ' + DP.fmt(stair.ws) + ' wide', stair.nPiles === 2 ? 'OK' : 'VERIFY', SRC_J);
+      add('Stair foot piles', "2 piles when stair is about 4'-0\" wide; 3 when larger (cutoff TBD)", stair.nPiles + ' piles, stair ' + DP.fmt(stair.ws) + ' wide', stair.nPiles === 2 ? 'OK' : 'INFO', SRC_J);
     }
+    if (raiseWanted && !raiseOk) add('Finished grade raise', 'A raise less than the deck height above existing grade', isFinite(raiseAmt) ? DP.fmt(raiseAmt) : 'not entered or not readable', 'NG', 'Deck Planner');
+    if (raiseOn) add('Finished grade raise', 'Owner to raise grade; heights from finished grade (VERIFY with City)', DP.fmtIn(raiseFt * 12) + ' raise, ' + DP.fmt(Hfin) + ' above finished grade', 'VERIFY', 'Owner / City');
     add('Guard required', 'Deck > 600 mm (2\'-0") above grade', guardReq ? 'Yes' : 'No', 'INFO', SRC_W + ' p.8');
     if (guardOn) {
-      add('Guard height', HIn > C.guardHiTriggerIn ? '1070 mm (42") min.' : '900 mm (36") min.', DP.fmtIn(guardHIn), 'OK', SRC_W + ' p.8');
+      add('Guard height', HdecIn > C.guardHiTriggerIn ? '1070 mm (42") min.' : '900 mm (36") min.', DP.fmtIn(guardHIn), 'OK', SRC_W + ' p.8');
       add('Guard openings', '< 100 mm (4") sphere', g.type === 'glass' ? 'glass infill' : '3 3/4" clear', 'OK', SRC_W + ' p.8');
       if (g.type !== 'wood') add('Pre-made guard system', 'Maker documents with plans', g.type === 'alum' ? 'aluminum system' : 'glass system', 'VERIFY', 'MB ITS Guide 06 s.2.2');
     }
@@ -394,7 +416,7 @@
         add('Stair landing length', 'Not in City deck guide', DP.fmt(stair.landing.depth) + ' (stair ' + DP.fmt(stair.ws) + ' wide)', 'VERIFY', 'MBC Part 9 (stairs)');
         add('Landing guard', landing.guardReq ? 'Landing > 600 mm: ' + (landing.guardHIn === 42 ? '1070' : '900') + ' mm' : 'Not required', landing.guardReq ? DP.fmtIn(landing.guardHIn) + ', both sides' : 'none', 'OK', SRC_W + ' p.8');
       }
-      if (sr.landing && sr.landing.on && !stair.landing) add('Stair landing', 'Needs 4 or more risers', stair.nR + ' risers: landing skipped', 'INFO', 'DeckPlan');
+      if (sr.landing && sr.landing.on && !stair.landing) add('Stair landing', 'Needs 4 or more risers', stair.nR + ' risers: landing skipped', 'INFO', 'Deck Planner');
     }
     if (shape) add('L-shaped deck', 'Each zone framed per Tables 2/3', zones.length + ' framing zones, rims bolted at joint', 'VERIFY', SRC_W + ' Tables 2–3');
     if (attached) add('Ledger attachment', 'Not in City guide', st.ledger.spacing + '" o.c. staggered', 'VERIFY', 'MBC Part 9');
@@ -405,7 +427,7 @@
     if (dk.material === 'composite') add('Decking vs joist spacing', 'Per decking maker', spacing + '" o.c.', 'VERIFY', SRC_W + ' p.7');
     if (!siteOk) add('Site dimensions', 'Lot, house size and house setbacks entered', 'missing or not readable', 'VERIFY', 'CoW addition form');
     else {
-      if (HIn > 24) add('Rear yard setback', "7.5 m (25'-0\") min.", DP.fmt(rearD), rearD >= C.rearYardFt - 0.01 ? 'OK' : 'NG', SRC_W + ' Fig.1');
+      if (HdecIn > 24) add('Rear yard setback', "7.5 m (25'-0\") min.", DP.fmt(rearD), rearD >= C.rearYardFt - 0.01 ? 'OK' : 'NG', SRC_W + ' Fig.1');
       const sideReq = DP.parseLen(site.sideReq);
       add('Side yard setbacks', isFinite(sideReq) ? DP.fmt(sideReq) + ' min. (zoning)' : 'Same as dwelling (zoning)', DP.fmt(Math.min(sideL, sideR)), isFinite(sideReq) ? (Math.min(sideL, sideR) >= sideReq ? 'OK' : 'NG') : 'VERIFY', SRC_W + ' Fig.1');
     }
@@ -418,6 +440,7 @@
       postsU: sec.postsU, postSp, nPosts: sec.nPosts, joistsU: sec.joistsU, nJ, joistLen: sec.joistLen, footings, maxLoad, deepReq, pierAbove, pierDepth, pierTop, postH, braceAt, braced: postH > braceAt,
       guardReq, guardOn, guardHIn, guardRuns, landingRuns, guardLF, stair, landing, stairFootings: (stair && stair.footings) || [], area, landingArea, shape, poly, edges, zones, sec, openings, heights,
       lotW, lotD, hW, hD, hFront, hLeft, deckSite, sideL, sideR, rearD, houseRear, siteOk,
+      Hexist, Hfin, Hdec, raiseOn, raiseFt, gradeFin: raiseFt,
       checks, st, ohMax,
     };
     return model;

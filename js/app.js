@@ -62,6 +62,7 @@
     $$('.pile-only').forEach((e) => (e.style.display = st.found.type === 'screwpile' ? '' : 'none'));
     $$('.garage-only').forEach((e) => (e.style.display = st.site && st.site.garage && st.site.garage.on ? '' : 'none'));
     $$('.overhead-only').forEach((e) => (e.style.display = st.site && st.site.overhead ? '' : 'none'));
+    $$('.raise-only').forEach((e) => (e.style.display = st.deck && st.deck.raiseGrade ? '' : 'none'));
   }
 
   $('#form').addEventListener('input', onEdit);
@@ -83,6 +84,7 @@
     const req = ['deck.L', 'deck.W', 'deck.H', 'site.lotW', 'site.lotD', 'site.houseW', 'site.houseD', 'site.frontSB', 'site.leftSB'];
     if (st.deck.shape === 'L') req.push('deck.extW', 'deck.extD');
     if (st.stairs.on && st.stairs.landing && st.stairs.landing.on) req.push('stairs.landing.depth');
+    if (st.deck.raiseGrade) req.push('deck.gradeRaise');
     (st.openings || []).forEach((o, i) => req.push('openings.' + i + '.at', 'openings.' + i + '.w', 'openings.' + i + '.h'));
     return req.every((k) => { const v = DP.parseLen(get(k)); return isFinite(v) && (v > 0 || /\.at$/.test(k) && v === 0); });
   }
@@ -104,6 +106,10 @@
     const bt = DP.BEAM_TABLE.find((r) => model.sjlMax * 12 <= r.max + 0.01);
     $('#beamNote').innerHTML = `Clear joist span <b>${DP.fmt(model.clear)}</b>${model.allowedIn ? ' (City max ' + DP.fmt(model.allowedIn / 12) + ')' : ''}. ${model.beamsV.length} beam line(s), ${model.nPosts} posts each at <b>${DP.fmt(model.postSp)}</b>. Beam needs ${bt ? bt.opts.map(([p, s]) => p + '-' + s).join(' or ') + ' or bigger' : 'an engineer (beyond Table 2)'}.`;
     $('#stairNote').innerHTML = model.stair && model.landing ? `<b>${model.stair.nR} risers</b> at ${DP.fmtIn(model.stair.riseIn)}: ${model.stair.n1} down to the landing at ${DP.fmt(model.landing.H)}, then ${model.stair.n2} to grade. ${model.stair.nT} treads.` : model.stair ? `<b>${model.stair.nR} risers</b> at ${DP.fmtIn(model.stair.riseIn)}, ${model.stair.nT} treads, total run ${DP.fmt(model.stair.totalRun)}.` : '';
+    const gn = $('#gradeNote');
+    if (gn) gn.innerHTML = model.raiseOn
+      ? `<b>${DP.fmt(model.Hexist)}</b> above existing grade, <b>${DP.fmt(model.Hfin)}</b> above finished grade (owner to raise ${DP.fmtIn(model.raiseFt * 12)}; VERIFY with the City). Permit, pile and guard rules use the finished-grade height.`
+      : `${DP.fmt(model.H)} above existing grade. Turn on “Customer raises grade” if the owner will backfill after the deck is built.`;
   }
   const title = (t) => t.charAt(0) + t.slice(1).toLowerCase();
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -139,7 +145,7 @@
       await doc.svg(el, { x: (fmtA[0] - w) / 2, y: (fmtA[1] - h) / 2, width: w, height: h });
     }
     stage.innerHTML = '';
-    doc.setProperties({ title: 'Deck permit drawings — ' + (st.project.address || ''), subject: 'Residential deck, City of Winnipeg', author: st.project.drawnBy || 'Carpenter Johnny', creator: 'DeckPlan v1.3.1' });
+    doc.setProperties({ title: 'Deck Planner — ' + (st.project.address || 'deck permit drawings'), subject: 'Residential deck, City of Winnipeg', author: st.project.drawnBy || 'Carpenter Johnny', creator: 'Deck Planner v1.3.2' });
     doc.save(filename);
     return doc;
   }
@@ -162,7 +168,7 @@
   $('#btnOpen').addEventListener('click', () => $('#fileOpen').click());
   $('#fileOpen').addEventListener('change', async (e) => {
     const f = e.target.files[0]; if (!f) return;
-    try { const j = JSON.parse(await f.text()); if (j.v !== 1) throw new Error('not a DeckPlan file'); st = merge(DP.defaultState(), j); fillForm(); render(); toast('Opened ' + f.name); }
+    try { const j = JSON.parse(await f.text()); if (j.v !== 1) throw new Error('not a Deck Planner file'); st = merge(DP.defaultState(), j); fillForm(); render(); toast('Opened ' + f.name); }
     catch (err) { toast('Could not open that file: ' + err.message); }
     e.target.value = '';
   });

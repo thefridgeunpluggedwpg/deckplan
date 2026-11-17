@@ -43,11 +43,13 @@
         if (i === m.beamsV.length - 1) Rgt.push({ x: X(v + r), y: Z(m.pierTop / 2), lines: ['CONCRETE SURFACE PAD', 'PER CITY TABLE 1'] });
       }
     });
-    // grade
+    // grade (existing dashed, proposed finished solid when the owner will raise the grade)
     const gv0 = showHouse ? -gapH : v0;
-    sv.line(X(gv0), Z(0), X(v1), Z(0), LW.h);
-    sv.earth(X(gv0), Z(0), X(v1), 8, skips);
-    Rgt.push({ x: X(v1 - 0.6), y: Z(0) + 1, lines: ['FINISHED GRADE'] });
+    DP.drawGrades(sv, X(gv0), X(v1), Z(0), Z(m.gradeFin), m, skips);
+    if (m.raiseOn) {
+      Rgt.push({ x: X(v1 - 0.6), y: Z(m.gradeFin) + 1, lines: ['PROPOSED FINISHED GRADE'] });
+      Rgt.push({ x: X(v1 - 0.6), y: Z(0) + 8, lines: ['EXISTING GRADE'] });
+    } else Rgt.push({ x: X(v1 - 0.6), y: Z(0) + 1, lines: ['FINISHED GRADE'] });
     // ---- house
     if (showHouse) {
       const hv = -gapH;
@@ -59,8 +61,7 @@
       R(hv - 0.667, zFoundBot, 0.667, fdTop - zFoundBot, LW.m, { fill: '#fff' });
       sv.concrete(X(hv - 0.667), Z(fdTop), 0.667 * s, (fdTop - zFoundBot) * s, 21);
       sv.breakLine(X(hv - 0.667) - 6, Z(zFoundBot), X(hv) + 6, Z(zFoundBot));
-      sv.earth(X(hv - 0.667) - 40, Z(0), X(hv - 0.667), 8);
-      sv.line(X(hv - 0.667) - 40, Z(0), X(hv - 0.667), Z(0), LW.h);
+      DP.drawGrades(sv, X(hv - 0.667) - 40, X(hv - 0.667), Z(0), Z(m.gradeFin), m);
       // sill + rim
       R(hv - 0.458, fdTop, 0.458, 1.5 / 12, LW.t);
       sv.xbox(X(hv - t), Z(hrTop), t * s, rimD * s, LW.m);
@@ -162,9 +163,9 @@
     const yMin = A.y + 14, yMax = A.y + bandH - 40;
     // vertical dims kept out of the leader paths: height under the deck, guard inside the guard, pier depth beside the pier
     const vx = X(Math.min(0.75, (m.beamsV[0] - 0.6) * 0.5) + (m.useLedger ? 0 : 0.3));
-    const hLbl = m.H * s > 112 ? fmt(m.H) + ' (' + DP.mm(m.H) + ' MM)' : fmt(m.H);
-    sv.dimAt([vx, Z(0)], [vx, Z(m.topDeck)], 'y', vx, hLbl);
-    const secObs = [DP.dimTextBoxY([vx, Z(0)], [vx, Z(m.topDeck)], vx, hLbl)];
+    const hLbl = m.Hdec * s > 112 ? fmt(m.Hdec) + ' (' + DP.mm(m.Hdec) + ' MM)' : fmt(m.Hdec);
+    sv.dimAt([vx, Z(m.gradeFin)], [vx, Z(m.topDeck)], 'y', vx, hLbl, { t: m.Hdec < 3 ? 0.22 : 0.5 });
+    const secObs = [DP.dimTextBoxY([vx, Z(m.gradeFin)], [vx, Z(m.topDeck)], vx, hLbl)];
     if (m.guardOn) { const gx = X(S) - 16; sv.dimAt([gx, Z(m.topDeck)], [gx, Z(m.topDeck + gH)], 'y', gx, fin(m.guardHIn), { out: 'above' }); }
     if (fo.type !== 'pad') { const r0 = (fo.type === 'screwpile' ? 3.5 : +fo.dia) / 24; const px = X(m.beamsV[0] - r0) - 12; sv.dimAt([px, Z(0)], [px, Z(-m.pierDepth)], 'y', px, fmt(m.pierDepth) + (m.pierDepth * s > 130 ? ' (' + DP.mm(m.pierDepth) + ' MM)' : '') + ' MIN.'); }
     DP.callouts(sv, Rgt, X(v1) + 30, 1, yMin, yMax, DP.TS.call, secObs);
@@ -185,6 +186,10 @@
     const lx = X(v1) + 50;
     void lx;
 
+    if (m.raiseOn) {
+      const gn = DP.wrapW(DP.gradeRaiseNote(m), Math.min(520, A.w - 200), 7.5);
+      sv.lines(A.x + 200, A.y + bandH - 20 - (gn.length - 1) * 9.4, gn, { size: 7.5 });
+    }
     sv.viewTitle(A.x + 18, A.y + bandH - 26, '1', 'DECK SECTION', 'SCALE: ' + scaleLbl, meta.num);
     sv.line(A.x, A.y + bandH, A.x + A.w, A.y + bandH, LW.t);
     const yDet = A.y + bandH, hDet = A.h - bandH;
@@ -231,9 +236,8 @@
     // standoff base
     R(cx - pw / 2 - 0.06, m.pierTop, pw + 0.12, 1 / 12, LW.m, { fill: '#fff' });
     sv.line(X(cx), Z(m.pierTop), X(cx), Z(m.pierTop - 0.35), LW.m, '2 1');
-    // grade
-    sv.line(X(-0.15), Z(0), X(2.5), Z(0), LW.h);
-    sv.earth(X(-0.15), Z(0), X(2.5), 7, [[X(cx - 0.4), X(cx + 0.4)]]);
+    // grade (existing dashed, finished solid when raised)
+    DP.drawGrades(sv, X(-0.15), X(2.5), Z(0), Z(m.gradeFin), m, [[X(cx - 0.4), X(cx + 0.4)]]);
     const pr = (fo.type === 'screwpile' ? 3.5 : fo.type === 'pad' ? 12 : +fo.dia) / 24;
     if (fo.type === 'pad') {
       R(cx - pr, 0, 2 * pr, m.pierTop, LW.h, { fill: '#fff' });
@@ -258,7 +262,7 @@
       { x: X(cx + pw / 2), y: Z((m.beamBot + m.pierTop) / 2), lines: [st.framing.post + ' P.T. POST'] },
       { x: X(cx + pw / 2 + 0.05), y: Z(m.pierTop + 0.02), lines: fo.type === 'pad' ? ['POST BASE ON SURFACE PAD'] : ['GALV. ADJUSTABLE STANDOFF', 'POST BASE ON PILE CAP'] },
     ];
-    if (fo.type !== 'pad') items.push({ x: X(cx + pr), y: Z(-pileShow * 0.45), lines: [pk.long, fmt(m.pierDepth) + ' MIN. BELOW GRADE', 'TESTED CAPACITY (VERIFY)'] });
+    if (fo.type !== 'pad') items.push({ x: X(cx + pr), y: Z(-pileShow * 0.45), lines: [pk.long, fmt(m.pierDepth) + (m.raiseOn ? ' MIN. BELOW EXISTING UNDISTURBED GRADE' : ' MIN. BELOW GRADE'), 'TESTED CAPACITY (VERIFY)'] });
     items.forEach((it) => { it.lines = DP.wrapW(DP.joinLines(it.lines), wrap, 7.5); });
     DP.callouts(sv, items, colX, 1, B.y + 10, B.y + B.h - 62, 7.5, [], 5);
     if (fo.type !== 'pad') {
@@ -341,7 +345,7 @@
     // flights: [{h, z} top nosing ... bottom]
     const flights = []; let f0 = { h: 0, z: m.H };
     pr.steps.forEach((x) => { if (x.landing) { flights.push([f0, { h: x.h0, z: x.z }]); f0 = { h: x.h1, z: x.z }; } });
-    flights.push([f0, { h: totRun, z: 0 }]);
+    flights.push([f0, { h: totRun, z: m.gradeFin }]);
     // landing platform
     const ld = pr.steps.find((x) => x.landing);
     if (ld && m.landing) {
@@ -356,21 +360,21 @@
     // treads & risers
     const pts = [[X(0), Z(m.topDeck)]];
     pr.steps.forEach((x) => { pts.push([X(x.h0), Z(x.z)]); pts.push([X(x.h1), Z(x.z)]); });
-    pts.push([X(totRun), Z(0)]);
+    pts.push([X(totRun), Z(m.gradeFin)]);
     sv.pl(pts, LW.h);
     pr.steps.forEach((x) => { sv.rect(X(x.h0 - (x.landing ? 0 : 1 / 12)), Z(x.z), (x.h1 - x.h0 + (x.landing ? 0 : 1 / 12)) * s, (1 / 12) * s, LW.m, { fill: '#fff' }); });
     // stringer underside per flight, parallel to the nosing line
     const slope = rise / run, cosT = Math.cos(Math.atan(slope)), dV = (11.25 / 12) / cosT;
     flights.forEach(([A0, B0]) => {
-      const zA = A0.z - dV, zBase = B0.z === 0 ? 0 : B0.z - m.jdIn / 12;
+      const zA = A0.z - dV, zBase = B0.z <= m.gradeFin + 1e-6 ? m.gradeFin : B0.z - m.jdIn / 12;
       const hB = Math.min(B0.h, A0.h + Math.max(0.2, (zA - zBase) / slope));
       sv.line(X(A0.h), Z(zA), X(hB), Z(zA - slope * (hB - A0.h)), LW.m);
       sv.line(X(A0.h), Z(A0.z), X(A0.h), Z(zA), LW.m);
       sv.line(X(A0.h), Z(A0.z), X(B0.h), Z(B0.z - (B0.z === 0 ? 0 : 0) + 0 * rise), LW.hair, '6 2');
     });
-    // ground + pad at the foot
-    sv.line(X(-0.8), Z(0), X(totRun + 2.6), Z(0), LW.h); sv.earth(X(-0.8), Z(0), X(totRun - 0.1), 7);
-    sv.rect(X(totRun - 0.1), Z(0), 2.2 * s, (4 / 12) * s, LW.m, { fill: '#fff' }); sv.concrete(X(totRun - 0.1), Z(0), 2.2 * s, (4 / 12) * s, 41);
+    // ground + bearing at the foot (finished grade when raised; piles still from existing grade)
+    DP.drawGrades(sv, X(-0.8), X(totRun + 2.6), Z(0), Z(m.gradeFin), m);
+    sv.rect(X(totRun - 0.1), Z(m.gradeFin), 2.2 * s, (4 / 12) * s, LW.m, { fill: '#fff' }); sv.concrete(X(totRun - 0.1), Z(m.gradeFin), 2.2 * s, (4 / 12) * s, 41);
     // guards: 36" above each flight's nosing line, level over the landing
     const up = 3, stairObs = [];
     const lastF = flights[flights.length - 1];
@@ -389,15 +393,15 @@
       sv.rect(X(-2.5 / 12), Z(m.topDeck + m.guardHIn / 12), (2.5 / 12) * s, (m.guardHIn / 12) * s, LW.m, { fill: '#fff' });
     }
     // dims
-    sv.dimAt([X(0), Z(m.topDeck)], [X(0), Z(0)], 'y', X(-0.8) - 24, fmt(m.H));
+    sv.dimAt([X(0), Z(m.topDeck)], [X(0), Z(m.gradeFin)], 'y', X(-0.8) - 24, fmt(m.Hdec));
     const chainPts = [[X(0), Z(m.H - rise)]], chainLb = [];
     flights.forEach(([A0, B0], i) => {
       const n = Math.round((B0.h - A0.h) / run);
       chainPts.push([X(B0.h), Z(rise)]); chainLb.push(fmt(B0.h - A0.h)); void n;
       if (i < flights.length - 1) { chainPts.push([X(flights[i + 1][0].h), Z(rise)]); chainLb.push(fmt(flights[i + 1][0].h - B0.h)); }
     });
-    sv.chain(chainPts, 'x', Z(0) + 32, chainLb);
-    stairObs.push({ x0: X(0) - 4, x1: X(totRun) + DP.textW(chainLb[chainLb.length - 1], DP.TS.dim) + 14, y0: Z(0) + 32 - 13, y1: Z(0) + 32 + 2 });
+    sv.chain(chainPts, 'x', Z(m.gradeFin) + 32, chainLb);
+    stairObs.push({ x0: X(0) - 4, x1: X(totRun) + DP.textW(chainLb[chainLb.length - 1], DP.TS.dim) + 14, y0: Z(m.gradeFin) + 32 - 13, y1: Z(m.gradeFin) + 32 + 2 });
     const stairColX = Math.max(X(totRun + 2.6) + 10, X(totRun) + DP.textW(chainLb[chainLb.length - 1], DP.TS.dim) + 22);
     const lt = pr.steps.filter((x) => !x.landing).pop();
     const items = [
@@ -409,7 +413,7 @@
     if (ld && m.landing) items.push({ x: X(ld.h1), y: Z(m.landing.topJoist - m.jdIn / 24), lines: ['LANDING ' + fmt(S0.ws) + ' × ' + fmt(ld.h1 - ld.h0) + ' AT +' + fmt(m.landing.H) + ',', st.framing.joist + ' P.T. FRAME ON ' + st.framing.post + ' POSTS (F2)', 'LANDING LENGTH (VERIFY)'] });
     items.forEach((it) => { it.lines = DP.wrapW(DP.joinLines(it.lines), Math.max(64, B.x + B.w - 22 - stairColX), 7.5); });
     DP.callouts(sv, items, stairColX, 1, B.y + 10, B.y + B.h - 62, 7.5, stairObs, 5);
-    { const ls = [S0.nR + ' RISERS @ ' + fin(S0.riseIn) + ' = ' + fmt(m.H) + '; ' + S0.nT + ' TREADS @ ' + fin(S0.runIn) + '; ' + fin(S0.ws * 12) + ' WIDE.', 'CITY: RISE 200 MM (7 7/8") MAX., RUN 255 MM (10") MIN., WIDTH 900 MM (36") MIN.'].flatMap((l) => DP.wrapW(l, B.w - 230, 7.5)); sv.lines(B.x + 215, B.y + B.h - 26 - (ls.length - 1) * 9.4, ls, { size: 7.5 }); }
+    { const ls = [S0.nR + ' RISERS @ ' + fin(S0.riseIn) + ' = ' + fmt(m.Hdec) + '; ' + S0.nT + ' TREADS @ ' + fin(S0.runIn) + '; ' + fin(S0.ws * 12) + ' WIDE.', 'CITY: RISE 200 MM (7 7/8") MAX., RUN 255 MM (10") MIN., WIDTH 900 MM (36") MIN.'].flatMap((l) => DP.wrapW(l, B.w - 230, 7.5)); sv.lines(B.x + 215, B.y + B.h - 26 - (ls.length - 1) * 9.4, ls, { size: 7.5 }); }
     sv.viewTitle(B.x + 18, B.y + B.h - 26, '4', 'STAIR SECTION', 'SCALE: ' + lbl, B.ref);
   }
 

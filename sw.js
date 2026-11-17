@@ -1,4 +1,4 @@
-const CACHE = 'deckplan-v1.3.1';
+const CACHE = 'deckplan-v1.3.2';
 const FILES = ['./', 'index.html', 'css/app.css', 'manifest.webmanifest', 'icons/icon.svg', 'vendor/jspdf.umd.min.js', 'vendor/svg2pdf.umd.min.js', 'vendor/osifont.js', 'vendor/osifont-lgpl3fe.ttf',
   'js/engine.js', 'js/svgkit.js', 'js/sheets.js', 'js/sheets2.js', 'js/sheets3.js', 'js/defaults.js', 'js/app.js'];
 self.addEventListener('install', (e) => e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting())));

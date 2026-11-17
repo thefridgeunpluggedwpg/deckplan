@@ -15,7 +15,7 @@
         houseW: "36'", houseD: "30'", frontSB: "25'", leftSB: "7'", sideReq: '', overhead: false, overheadNote: '',
         garage: { on: true, w: "22'", d: "22'", rear: "3'", right: "3'" }, dimSource: '',
       },
-      deck: { attach: 'attached', L: "16'", W: "12'", H: "4'", offset: "10'", gap: "1'", shape: 'rect', extSide: 'right', extW: "8'", extD: "6'" },
+      deck: { attach: 'attached', L: "16'", W: "12'", H: "4'", offset: "10'", gap: "1'", shape: 'rect', extSide: 'right', extW: "8'", extD: "6'", raiseGrade: false, gradeRaise: '6"' },
       // doors / basement windows on the house wall behind the deck; "at" = from the deck's left end to the opening's left edge
       openings: [
         { type: 'door', at: "5'", w: "6'", h: '6\'-8"', bedroom: false, label: 'PATIO DOOR' },

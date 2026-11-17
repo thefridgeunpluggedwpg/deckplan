@@ -1,4 +1,4 @@
-# DeckPlan v1.3: deck permit drawings for Carpenter Johnny
+# Deck Planner v1.3: deck permit drawings for Carpenter Johnny
 
 A static web app (HTML/JS, no backend, works offline). You enter a deck design and it draws a CAD-style permit set. Blueprint drawings only: five sheets, each on its own PDF page. Johnny makes his own takeoff and pricing from the drawings. There is no material list, budget or 3D view.
 
@@ -11,6 +11,14 @@ A static web app (HTML/JS, no backend, works offline). You enter a deck design a
 | A4 Cross-section and details | A section from the house wall to the outer beam (ledger, flashing, hangers, joists, beam on post, post-to-pile connection, guard, decking, grade and height dims), plus enlarged ledger and post/beam/pile details, and a stair stringer detail when the project has a stair |
 
 Each sheet has a border and a title block (Carpenter Johnny, project, address, legal description, owner, revision table, general notes, drawn by / checked / date / scale, sheet title and number such as "1 OF 5").
+
+## New in v1.3.2 (17 Nov 2026)
+
+- **Name.** The app is called Deck Planner everywhere you see it (page title, header, home-screen / install name, PDF title and creator). Internal identifiers are unchanged: the repo and Pages URL stay `/deckplan`, the offline cache prefix is still `deckplan-`, and saved projects still use the same localStorage key and `.deckplan.json` extension, so existing files still open.
+- **Customer raises grade.** An optional yes/no plus a finished-grade raise amount (inches; one uniform value). When it is on, the 2'-0" permit, pile and guard decisions use the walking-surface height above *finished* grade. The app and the drawings show both numbers (for example `2'-3" above existing grade, 1'-9" above finished grade`). If that finished height is 2'-0" or lower, Pylex is OK and the no-permit / no-guard logic follows the finished height. A note on the drawings reads: owner to raise finished grade before completion; heights measured from finished grade (VERIFY with City). The parenthetical "to within 2'-0" of deck surface" is only used when the finished height is actually 2'-0" or lower. This is not claimed as City-approved.
+- **Both grades on the drawings.** Elevations, the A4 section and the A0 notes show existing grade (dashed) and proposed finished grade (solid). The height dimension is taken from finished grade. Pile embedment is still measured from existing undisturbed grade, and the drawings say so. Stairs land on finished grade.
+- **Pile notes are info, not warnings.** Screw-pile capacity, an unknown pile maker, and the 3-pile stair-width cutoff are listed as INFO, so they do not increment the "to verify" chip. A foundation type that is not allowed (for example Pylex on a deck still over 2'-0" after the raise) stays NG.
+- Offline cache is `deckplan-v1.3.2`. PDF creator is `Deck Planner v1.3.2`. 84 tests. A third sample (16'×12' at 2'-3" existing with a 6" raise, Pylex) is in `demo/v1.3/` as `sample-grade-raise.pdf` / `.deckplan.json` and `grade-page-0.png` … `grade-page-4.png`.
 
 ## New in v1.3.1 (17 Nov 2026)
 
@@ -56,8 +64,8 @@ Each sheet has a border and a title block (Carpenter Johnny, project, address, l
 - `js/sheets.js`, `js/sheets2.js`, `js/sheets3.js`: title block, site plan, overhead plan, elevations, and the cross-section / details builders
 - `vendor/`: jsPDF 4.2.1 and svg2pdf.js 2.9.0 (MIT, vendored locally, no CDN). jsPDF has a one-line patch so the embedded font's CID ordering reads "Identity", which some PDF readers need. The patch is noted in `LICENSE-jspdf.txt`.
 - `vendor/osifont-lgpl3fe.ttf`, `vendor/osifont.js`: osifont 0.1.20221020 (LGPL-3.0 with font exception, https://github.com/hikikomori82/osifont). The license text is in `vendor/LICENSE-osifont.txt`.
-- `sw.js`, `manifest.webmanifest`: offline/PWA. Cache name: `deckplan-v1.3.1`.
-- `demo/v1.3/`: v1.3.1 sample 5-page PDFs, page-0..4 PNGs and project files (the 16'x12' 4' sample and the L-shaped deck with landing). `demo/v1.2/` is not a separate folder; older outputs remain in `demo/` alongside `demo/v1.0/` and `demo/v1.1/`.
+- `sw.js`, `manifest.webmanifest`: offline/PWA. Cache name: `deckplan-v1.3.2`. The install / home-screen name is Deck Planner (`name` and `short_name` in the manifest, plus `apple-mobile-web-app-title`).
+- `demo/v1.3/`: v1.3.2 sample 5-page PDFs, page PNGs and project files (the 16'x12' 4' sample, the L-shaped deck with landing, and the 2'-3" existing / 6" grade-raise sample). `demo/v1.2/` is not a separate folder; older outputs remain in `demo/` alongside `demo/v1.0/` and `demo/v1.1/`.
 - `tools/e2e.py`: headless browser tests (Python Playwright, e.g. `/workspace/.venv-pw/bin/python tools/e2e.py`). Run it with the app served on 127.0.0.1:8931. `tools/overlap.js` is the overlap checker. `tools/svgdump.js` and `tools/shot.py` are render helpers.
 - `research/`: downloaded source PDFs and text, plus `JOHNNY-RULES.md`.
 
@@ -77,8 +85,9 @@ Each sheet has a border and a title block (Carpenter Johnny, project, address, l
 
 Values come only from the sources above. Anything the sources don't settle is printed as VERIFY on the drawings, never guessed:
 
-- Foundation type vs height: a permit deck over 2'-0" that is not on Gary Taylor helical piles is NG. Pylex on a permit-height deck is NG. Pile capacity is still VERIFY (tested capacity vs the scheduled load).
-- Stair foot pile count: 2 piles when the stair is about 4'-0" wide is OK; 3 piles on a wider stair is VERIFY because the exact cutoff is TBD.
+- Foundation type vs height (measured above finished grade when a raise is entered, otherwise above existing grade): a permit deck over 2'-0" that is not on Gary Taylor helical piles is NG. Pylex on a permit-height deck is NG. Pile tested capacity is listed as INFO (it still appears on the drawings with VERIFY in the wording, but it does not increment the "to verify" chip).
+- Stair foot pile count: 2 piles when the stair is about 4'-0" wide is OK; 3 piles on a wider stair is listed as INFO because the exact cutoff is TBD.
+- Finished grade raise: when the raise is on, a VERIFY item reminds you to confirm the finished-grade height with the City. An unreadable raise, or a raise that is not less than the existing-grade height, is NG and is not applied.
 - Ledger fastener type and spacing. The City deck guide doesn't give them, so the default "LedgerLOK @ 16" staggered" is marked VERIFY.
 - Concrete pier design, if someone still selects a sonotube. For deep foundations the City guide asks for an engineer-designed pier, or screw piles.
 - Pre-made guard system documents, composite decking span at the chosen joist spacing, the existing house rim condition, and knee-brace size.
@@ -89,7 +98,7 @@ Values come only from the sources above. Anything the sources don't settle is pr
 - Material list, budget and labour. Johnny makes his own takeoff and pricing from the drawings.
 - Electrical (separate City permit), hot tubs, roofs or enclosures over the deck. Brace sizing is drawn but marked VERIFY. (Hot tubs and sunrooms are helical piles per Johnny's SOP, but the app has no hot-tub input.)
 - Bedroom window egress is flagged, not designed.
-- Irregular lots, decks wrapping a corner (more than one wing), multi-level decks, turning (90°) stair landings, beams spliced over posts. Spans beyond the City tables need an engineer. Side-yard zoning is not filled in by default, so side setbacks are marked VERIFY until a required side yard is entered. Legal description on the sample is a placeholder marked VERIFY. Pile tested capacity is VERIFY.
+- Irregular lots, decks wrapping a corner (more than one wing), multi-level decks, turning (90°) stair landings, beams spliced over posts. Spans beyond the City tables need an engineer. Side-yard zoning is not filled in by default, so side setbacks are marked VERIFY until a required side yard is entered. Legal description on the sample is a placeholder marked VERIFY. Pile tested capacity is still noted on the drawings (INFO in the badge). A deck can still need a permit for area (over 36 sq.ft) even when the finished-grade height is 2'-0" or lower. A finished-grade raise is marked VERIFY with the City; the drawings do not claim it is code-approved.
 - Paper size isn't set in the City's deck material. v1.3 defaults to 11x17. Letter is a reduced print with a "do not scale" note.
 - Nothing is stamped or certified. It is a contractor-prepared drawing set based on the City's prescriptive guide and Johnny's SOP.
 
@@ -98,5 +107,5 @@ Values come only from the sources above. Anything the sources don't settle is pr
 - Photo or sketch to dimensions: read a rough sketch or site photos and pre-fill the form.
 - Hosted version behind a login, with projects saved per client job.
 - Turning (L/U) stair landings, multi-level decks, wrap-around and U-shaped decks, and an engineered-brace detail once the City or an engineer gives a size.
-- Confirm the stair-width cutoff for 3 foot piles with Johnny, then drop the VERIFY on that check.
+- Confirm the stair-width cutoff for 3 foot piles with Johnny, then drop the leftover INFO on that check.
 - PDF/A output.

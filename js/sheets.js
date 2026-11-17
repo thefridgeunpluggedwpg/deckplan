@@ -27,8 +27,12 @@
     // project
     lbl(x + 6, y + 10, 'PROJECT');
     sv.text(x + 6, y + 23, (m.attached ? 'PROPOSED ATTACHED DECK' : 'PROPOSED FREESTANDING DECK'), { size: 10.5, bold: true });
-    sv.text(x + 6, y + 34, (m.shape ? 'L-SHAPED ' + fmt(m.L) + ' × ' + fmt(m.Wt) : fmt(m.L) + ' × ' + fmt(m.W)) + ', ' + fmt(m.H) + ' ABOVE GRADE', { size: 8 });
-    let yy = y + 47;
+    const sizeLine = (m.shape ? 'L-SHAPED ' + fmt(m.L) + ' × ' + fmt(m.Wt) : fmt(m.L) + ' × ' + fmt(m.W));
+    if (m.raiseOn) {
+      sv.text(x + 6, y + 34, sizeLine + ',', { size: 8 });
+      sv.text(x + 6, y + 44, DP.heightPhrase(m), { size: 7.5 });
+    } else sv.text(x + 6, y + 34, sizeLine + ', ' + fmt(m.H) + ' ABOVE GRADE', { size: 8 });
+    let yy = y + (m.raiseOn ? 56 : 47);
     lbl(x + 6, yy, 'ADDRESS'); yy += 11;
     const addr = wrapW(p.address || '—', tw, 9).slice(0, 2).concat([p.city || 'WINNIPEG, MB']);
     addr.forEach((s2) => { sv.text(x + 6, yy, s2, { size: 9 }); yy += 10.5; });
@@ -196,7 +200,7 @@
     // deck label: inside if it fits, else in the rear yard with a leader near the deck corner
     const dr = rectS(dx, dy, m.L, m.W);
     const dc = [dr[0] + dr[2] / 2, dr[1] + dr[3] / 2];
-    const lblLines = ['PROPOSED DECK', (m.shape ? 'L-SHAPED, ' : fmt(m.L) + ' × ' + fmt(m.Wt) + ', ') + Math.round(m.area) + ' SQ.FT', fmt(m.H) + ' ABOVE GRADE'];
+    const lblLines = ['PROPOSED DECK', (m.shape ? 'L-SHAPED, ' : fmt(m.L) + ' × ' + fmt(m.Wt) + ', ') + Math.round(m.area) + ' SQ.FT', m.raiseOn ? fmt(m.Hfin) + ' ABOVE FINISHED GRADE' : fmt(m.H) + ' ABOVE GRADE'];
     if (dr[2] > 116 && dr[3] > 36 && !m.shape) {
       sv.rect(dc[0] - 54, dc[1] - 16, 108, 31, LW.t, { fill: '#fff' });
       sv.text(dc[0], dc[1] - 3.5, 'PROPOSED DECK', { size: 9, bold: true, anchor: 'middle' });
@@ -291,13 +295,14 @@
       'CIVIC ADDRESS: ' + (st.project.address || '—') + ', ' + (st.project.city || 'WINNIPEG, MB') + '.',
       'LEGAL DESCRIPTION: ' + (st.project.legal || 'VERIFY') + '.',
       'LOT AND BUILDING DIMENSIONS ' + (site.dimSource || 'FROM OWNER / SITE MEASURE — VERIFY AGAINST SURVEY (BUILDING LOCATION CERTIFICATE)') + '.',
-      'DECK SURFACE IS ' + fmt(m.H) + ' (' + DP.mm(m.H) + ' MM) ABOVE GRADE. DECKS HIGHER THAN 600 MM (2\'-0") MUST PROVIDE THE SAME SETBACKS AS THE DWELLING; REQUIRED REAR SETBACK 7.5 M (25\'-0"). NO DECK PERMITTED IN FRONT YARD.',
+      'DECK SURFACE IS ' + DP.heightPhrase(m) + ' (' + DP.mm(m.raiseOn ? m.Hfin : m.H) + ' MM TO THE GRADE USED FOR HEIGHT RULES). DECKS HIGHER THAN 600 MM (2\'-0") MUST PROVIDE THE SAME SETBACKS AS THE DWELLING; REQUIRED REAR SETBACK 7.5 M (25\'-0"). NO DECK PERMITTED IN FRONT YARD.',
       site.overhead ? 'OVERHEAD POWER CONDUCTORS PRESENT: MAINTAIN 3.5 M (11\'-6") MIN. CLEARANCE ABOVE DECK SURFACE. ' + (site.overheadNote || 'LOCATION TO BE SHOWN (VERIFY).') : 'NO OVERHEAD POWER CONDUCTORS OVER DECK AREA (VERIFY ON SITE).',
       'a = DECK TO SIDE PROPERTY LINES, b = DECK TO REAR PROPERTY LINE, c = REAR YARD (DWELLING TO REAR PROPERTY LINE).',
       'NO HOT TUB / SPA PROPOSED ON THIS DECK.',
     ];
+    if (m.raiseOn) notes.splice(4, 0, DP.gradeRaiseNote(m), 'EXISTING GRADE AND PROPOSED FINISHED GRADE ARE SHOWN ON THE ELEVATIONS AND SECTION. PILE EMBEDMENT IS MEASURED FROM EXISTING UNDISTURBED GRADE.');
     const lotA = m.lotW * m.lotD, houseA = m.hW * m.hD;
-    const data = [['LOT AREA', Math.round(lotA) + ' SQ.FT (' + (lotA * 0.0929).toFixed(1) + ' M²)'], ['DWELLING FOOTPRINT', Math.round(houseA) + ' SQ.FT'], ['PROPOSED DECK', Math.round(m.area) + ' SQ.FT (' + (m.area * 0.0929).toFixed(1) + ' M²)'], ...(m.landing ? [['STAIR LANDING', Math.round(m.landingArea) + ' SQ.FT AT +' + fmt(m.landing.H)]] : []), ['DECK HEIGHT', fmt(m.H) + ' (' + DP.mm(m.H) + ' MM)'], ['REAR YARD AFTER DECK', fmt(m.rearD) + ' (' + (m.rearD * 0.3048).toFixed(2) + ' M)']];
+    const data = [['LOT AREA', Math.round(lotA) + ' SQ.FT (' + (lotA * 0.0929).toFixed(1) + ' M²)'], ['DWELLING FOOTPRINT', Math.round(houseA) + ' SQ.FT'], ['PROPOSED DECK', Math.round(m.area) + ' SQ.FT (' + (m.area * 0.0929).toFixed(1) + ' M²)'], ...(m.landing ? [['STAIR LANDING', Math.round(m.landingArea) + ' SQ.FT AT +' + fmt(m.landing.H)]] : []), ['DECK HEIGHT', m.raiseOn ? fmt(m.Hexist) + ' EXIST. / ' + fmt(m.Hfin) + ' FIN.' : fmt(m.H) + ' (' + DP.mm(m.H) + ' MM)'], ['REAR YARD AFTER DECK', fmt(m.rearD) + ' (' + (m.rearD * 0.3048).toFixed(2) + ' M)']];
     const dataBlock = (cx, ny, w) => {
       sv.text(cx, ny, 'Site data', { size: TS.head, bold: true }); sv.line(cx, ny + 3, cx + DP.textW('SITE DATA', TS.head, true), ny + 3, LW.m); ny += 16;
       data.forEach(([k, v]) => { sv.text(cx, ny, k, { size: 8 }); sv.text(cx + w, ny, v, { size: 8, anchor: 'end' }); sv.line(cx, ny + 3.5, cx + w, ny + 3.5, LW.hair); ny += 13.5; });
@@ -327,6 +332,18 @@
     return sv;
   }
 
-  DP.sheetHelpers = { frame, wrap, wrapW, fitW, notesBlock, northArrow, B, TB };
+  function drawGrades(sv, x0, x1, yExist, yFin, m, skips) {
+    const raise = !!(m && m.raiseOn) && Math.abs((yFin || 0) - yExist) > 0.8;
+    if (raise) {
+      sv.earth(x0, yFin, x1, 8, skips);
+      sv.line(x0, yExist, x1, yExist, LW.m, DP.DASH.hidden);
+      sv.line(x0, yFin, x1, yFin, LW.h);
+    } else {
+      sv.line(x0, yExist, x1, yExist, LW.h);
+      sv.earth(x0, yExist, x1, 7, skips);
+    }
+  }
+  DP.drawGrades = drawGrades;
+  DP.sheetHelpers = { frame, wrap, wrapW, fitW, notesBlock, northArrow, drawGrades, B, TB };
   DP.siteSheet = siteSheet;
 })();

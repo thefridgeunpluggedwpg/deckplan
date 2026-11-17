@@ -321,7 +321,7 @@
       'JOIST SPANS PER CITY TABLE 3 (1.9 KPA LIVE LOAD). JOISTS ' + st.framing.joist + ' @ ' + m.spacing + '" O.C., MAX CLEAR SPAN ' + fmt(m.clear) + '.',
       'BEAM ' + m.beam.label + ' PER CITY TABLE 2. NAIL PLIES WITH DOUBLE ROW OF 89 MM (3 1/2") NAILS @ 450 MM (18") O.C. MAX; BEAM JOINTS OVER SUPPORTS ONLY.',
       'POSTS ' + st.framing.post + ' P.T., CENTRED ON FOOTINGS, FASTENED TO BEAM WITH GALV. POST CAP.' + (m.braced ? ' POSTS OVER 1.5 M (5\'-0"): KNEE BRACES SHOWN ON ELEVATIONS (A2, A3), SIZE AND BOLTING TO BE CONFIRMED (VERIFY).' : ' POSTS OVER 1.5 M (5\'-0") TO BE BRACED.'),
-      m.H > 2 + 1e-9 ? 'PERMIT DECK OVER 2\'-0": GARY TAYLOR HELICAL PILES, CERTIFIED INSTALLER, EXTENDING MIN. 1.8 M (6\'-0") BELOW GRADE. PILE CAPACITY TO BE CONFIRMED (VERIFY). PYLEX PILES ARE FOR DECKS 2\'-0" OR LOWER ONLY.' : (m.deepReq ? 'FOOTINGS TO EXTEND MIN. 1.8 M (6\'-0") BELOW GRADE (FROST). CONCRETE PIER DESIGN / SCREW PILE CAPACITY TO BE CONFIRMED (VERIFY).' : 'SURFACE PADS PER CITY TABLE 1; PROVIDE ACCESS FOR RE-LEVELLING (SCREWED DECKING).'),
+      m.Hdec > 2 + 1e-9 ? 'PERMIT DECK OVER 2\'-0" (ABOVE FINISHED GRADE): GARY TAYLOR HELICAL PILES, CERTIFIED INSTALLER, EXTENDING MIN. 1.8 M (6\'-0") BELOW EXISTING UNDISTURBED GRADE. PYLEX PILES ARE FOR DECKS 2\'-0" OR LOWER ONLY.' : (m.deepReq ? 'FOOTINGS TO EXTEND MIN. 1.8 M (6\'-0") BELOW EXISTING UNDISTURBED GRADE (FROST). CONCRETE PIER DESIGN / SCREW PILE CAPACITY TO BE CONFIRMED ON SITE.' : 'SURFACE PADS PER CITY TABLE 1; PROVIDE ACCESS FOR RE-LEVELLING (SCREWED DECKING).'),
       m.attached ? 'LEDGER: REMOVE SIDING AT LEDGER, INSTALL OVER HOUSE RIM JOIST WITH Z-FLASHING. FASTENER TYPE/SPACING TO BE CONFIRMED (VERIFY).' : 'FREESTANDING DECK: NOT FASTENED TO DWELLING.',
     ];
     if (multi) notes.push('L-SHAPED DECK FRAMED AS ' + m.zones.length + ' ZONES, EACH SIZED TO CITY TABLES 2 AND 3; DOUBLE JOIST/RIM AT THE JOINT, THROUGH-BOLTED (VERIFY).');
@@ -375,7 +375,13 @@
         const a = X(o.at), b = X(o.at + o.w);
         sv.rect(a, Z(z1), b - a, (z1 - z0) * s, LW.m, { fill: '#fff' });
         if (o.type === 'door') { const mid = (a + b) / 2; sv.line(mid, Z(z1), mid, Z(z0), LW.t); sv.rect(a + 3, Z(z1) + 3, mid - a - 6, (z1 - z0) * s - 6, LW.hair); sv.rect(mid + 3, Z(z1) + 3, b - mid - 6, (z1 - z0) * s - 6, LW.hair); }
-        else { sv.line(a, Z((z0 + z1) / 2), b, Z((z0 + z1) / 2), LW.hair); if (z0 < 0) sv.text((a + b) / 2, Z(0) + 11, 'WELL', { size: 7, anchor: 'middle' }); }
+        else { sv.line(a, Z((z0 + z1) / 2), b, Z((z0 + z1) / 2), LW.hair); if (z0 < 0) {
+          const wx = (a + b) / 2, wy = Z(0) + 14;
+          sv.text(wx, wy, 'WELL', { size: 7, anchor: 'middle' });
+          const tw = DP.textW('WELL', 7) / 2 + 3;
+          out.obstacles = out.obstacles || [];
+          out.obstacles.push({ x0: wx - tw, x1: wx + tw, y0: wy - 8, y1: wy + 3 });
+        } }
         out.tags = out.tags || []; out.tags.push([(a + b) / 2, o.type === 'door' ? Z(z1) + 13 : Z((z0 + z1) / 2), o.mark]);
         out.callouts.push({ x: b, y: Z(z1 - (z1 - z0) * 0.3), lines: [o.mark + ' ' + (o.type === 'door' ? 'EXISTING DOOR TO DECK' : 'EXISTING BASEMENT WINDOW'), fmt(o.w) + ' × ' + fmt(o.h) + (o.type === 'window' ? (o.bedroom ? ', BEDROOM: EGRESS (VERIFY)' : ', NOT A BEDROOM') : '')] });
         void i;
@@ -387,9 +393,8 @@
       sv.breakLine(hx0 - 8, Z(hTop), hx1 + 8, Z(hTop));
       sv.text(hx1 + 6, Z(hTop) + 14, 'EXISTING HOUSE', { size: 9 });
     }
-    // grade + earth
-    sv.line(X(hMin), Z(0), X(hMax), Z(0), LW.h);
-    sv.earth(X(hMin), Z(0), X(hMax), 7);
+    // grade + earth (existing dashed, proposed finished solid, when the owner will raise the grade)
+    DP.drawGrades(sv, X(hMin), X(hMax), Z(0), Z(m.gradeFin), m);
     const allZ = m.zones.concat(m.landing ? [m.landing] : []);
     const zH = (z) => (z.id === 'LD' ? m.landing : m);
     // footings, posts, braces
@@ -487,10 +492,10 @@
       const pr = st0.profile, rise = pr.rise;
       if (faceOn) {
         const a = st0.off, b = st0.off + st0.ws;
-        sv.rect(X(a), Z(m.topDeck), (b - a) * s, m.topDeck * s, LW.t, { fill: '#fff' });
+        sv.rect(X(a), Z(m.topDeck), (b - a) * s, (m.topDeck - m.gradeFin) * s, LW.t, { fill: '#fff' });
         pr.steps.forEach((x) => { if (x.landing) return; sv.rect(X(a), Z(x.z), (b - a) * s, (1 / 12) * s, LW.m, { fill: '#fff' }); sv.line(X(a), Z(x.z - 1 / 12), X(b), Z(x.z - 1 / 12), LW.t); });
         if (st0.landing) { const L0 = m.landing; sv.rect(X(a), Z(L0.topDeck), (b - a) * s, (m.deckTIn / 12 + m.jdIn / 12) * s, LW.m, { fill: '#fff' }); }
-        sv.line(X(a + 0.12), Z(m.topDeck), X(a + 0.12), Z(0), LW.t); sv.line(X(b - 0.12), Z(m.topDeck), X(b - 0.12), Z(0), LW.t);
+        sv.line(X(a + 0.12), Z(m.topDeck), X(a + 0.12), Z(m.gradeFin), LW.t); sv.line(X(b - 0.12), Z(m.topDeck), X(b - 0.12), Z(m.gradeFin), LW.t);
         if (m.guardOn && st0.guard) {
           [a, b - postW].forEach((h) => sv.rect(X(h), Z(rise + 3), postW * s, (rise + 3) * s, LW.m, { fill: '#fff' }));
           [a, b - postW].forEach((h) => sv.line(X(h + postW / 2), Z(rise + 3), X(h + postW / 2), Z(m.topDeck + 3), LW.m));
@@ -502,16 +507,17 @@
         const pts = [[X(h0), Z(m.topDeck)]];
         pr.steps.forEach((x) => { pts.push([X(h0 + dir * x.h0), Z(x.z)]); pts.push([X(h0 + dir * x.h1), Z(x.z)]); });
         const hEnd = h0 + dir * pr.total;
-        pts.push([X(hEnd), Z(0)]);
+        pts.push([X(hEnd), Z(m.gradeFin)]);
         sv.pl(pts, LW.m);
         pr.steps.forEach((x) => { if (!x.landing) sv.rect(X(h0 + dir * (dir > 0 ? x.h0 : x.h1)), Z(x.z), (x.h1 - x.h0) * s, (1 / 12) * s, LW.t); });
         // stringer undersides, per flight, parallel to the nosing line
         const slope = rise / pr.run, cosT = Math.cos(Math.atan(slope)), dV = (11.25 / 12) / cosT;
         const flights = []; let fs0 = { h: 0, z: m.H };
         pr.steps.forEach((x) => { if (x.landing) { flights.push([fs0, { h: x.h0, z: x.z }]); fs0 = { h: x.h1, z: x.z }; } });
-        flights.push([fs0, { h: pr.total, z: 0 }]);
+        flights.push([fs0, { h: pr.total, z: m.gradeFin }]);
         flights.forEach(([A0, B0]) => {
-          const zA = A0.z - dV; const zEndBase = B0.z === 0 ? 0 : B0.z - m.jdIn / 12;
+          const atGrade = B0.z <= m.gradeFin + 1e-6;
+          const zA = A0.z - dV; const zEndBase = atGrade ? m.gradeFin : B0.z - m.jdIn / 12;
           const hB = A0.h + Math.max(0.2, (zA - zEndBase) / slope);
           sv.line(X(h0 + dir * A0.h), Z(zA), X(h0 + dir * Math.min(hB, B0.h + (B0.z === 0 ? 0 : 0))), Z(Math.max(zEndBase, zA - slope * (Math.min(hB, B0.h) - A0.h))), LW.m);
           // guard over the flight
@@ -549,10 +555,10 @@
     });
     // dims (left vertical)
     const dx = X(hMin) - 18;
-    sv.dimAt([X(hMin), Z(0)], [X(hMin), Z(m.topDeck)], 'y', dx, fmt(m.H) + ' (' + DP.mm(m.H) + ')');
+    sv.dimAt([X(hMin), Z(m.gradeFin)], [X(hMin), Z(m.topDeck)], 'y', dx, fmt(m.Hdec) + ' (' + DP.mm(m.Hdec) + ')');
     if (m.guardOn) sv.dimAt([X(0), Z(m.topDeck)], [X(0), Z(m.topDeck + m.guardHIn / 12)], 'y', dx, fin(m.guardHIn) + ' (' + (m.guardHIn === 42 ? 1070 : 900) + ')');
     const hp = [...new Set(m.zones.flatMap((z) => z.footings.map((f) => Math.round(hOf(f) * 48) / 48)))].sort((a, b) => a - b);
-    if (st.found.type !== 'pad') sv.dimAt([X(hp[0] - 0.5), Z(0)], [X(hp[0] - 0.5), Z(-m.pierDepth)], 'y', dx, fmt(m.pierDepth) + ' MIN.');
+    if (st.found.type !== 'pad') sv.dimAt([X(hp[0] - 0.5), Z(0)], [X(hp[0] - 0.5), Z(-m.pierDepth)], 'y', dx, fmt(m.pierDepth) + (m.raiseOn ? ' MIN. BELOW EXISTING GRADE' : ' MIN.'));
     // overall horizontal under footings
     const yDim = Z(-m.pierDepth) + 28;
     const pts = [[X(0), Z(0)], ...hp.map((h) => [X(h), Z(-m.pierDepth)]), [X(len), Z(0)]];
@@ -563,8 +569,11 @@
     // levels on the left, outside the height dimensions
     const lx = X(hMin) - 54;
     sv.level(lx, Z(m.topDeck), 'T/O DECK +' + fmt(m.H), -1);
-    if (m.landing) sv.level(lx, Z(m.landing.topDeck), 'T/O LANDING +' + fmt(m.landing.H), -1);
-    sv.level(lx, Z(0), 'GRADE ±0\'-0"', -1);
+    if (m.landing) sv.level(lx, Z(m.landing.topDeck), 'T/O LANDING +' + fmt(m.landing.H + (m.raiseOn ? m.raiseFt : 0)), -1);
+    if (m.raiseOn) {
+      sv.level(lx, Z(m.gradeFin), 'FINISHED GRADE +' + fmt(m.raiseFt), -1);
+      sv.level(lx, Z(0), 'EXISTING GRADE ±0\'-0"', -1);
+    } else sv.level(lx, Z(0), 'GRADE ±0\'-0"', -1);
     if (fo.type !== 'pad') sv.level(lx, Z(-m.pierDepth), 'U/S FOOTING -' + fmt(m.pierDepth), -1);
     out.lx = X(hMax) + 12;
     return out;
@@ -595,7 +604,7 @@
     if (o.beam) items.push({ x: o.beam[0], y: o.beam[1], lines: [m.beam.label + ' P.T. BEAM'] });
     if (o.post) items.push({ x: o.post[0], y: o.post[1], lines: [st.framing.post + ' P.T. POST ON GALV.', 'POST BASE'] });
     if (o.brace) items.push({ x: o.brace[0], y: o.brace[1], lines: ['2x6 P.T. KNEE BRACE @ 45°,', 'BOLTED, EACH POST OVER', '5\'-0" (SIZE VERIFY)'] });
-    if (o.pier) items.push({ x: o.pier[0], y: o.pier[1], lines: [DP.pileKind(fo).short, fmt(m.pierDepth) + ' MIN. BELOW GRADE'] });
+    if (o.pier) items.push({ x: o.pier[0], y: o.pier[1], lines: [DP.pileKind(fo).short, fmt(m.pierDepth) + (m.raiseOn ? ' MIN. BELOW EXISTING GRADE' : ' MIN. BELOW GRADE')] });
     if (o.landing && m.landing) items.push({ x: o.landing[0], y: o.landing[1], lines: ['STAIR LANDING ' + fmt(m.landing.rect.w) + ' × ' + fmt(m.landing.rect.h) + ',', 'OWN POSTS AND FOOTINGS (F2)'] });
     if (o.stairPile && m.stair && m.stair.footings && m.stair.footings.length) items.push({ x: o.stairPile[0], y: o.stairPile[1], lines: [(m.landing ? 'F3' : 'F2') + ' STAIR FOOT PILES (' + m.stair.footings.length + ')', DP.pileKind(fo).short] });
     if (o.stair && st0) {
@@ -606,15 +615,17 @@
     }
     o.callouts.forEach((c) => items.push(c));
     items.forEach((it) => { it.lines = DP.wrapW(DP.joinLines(it.lines), A.x + A.w - colX - 22, DP.TS.call); });
-    callouts(sv, items, colX, 1, A.y + 24, gy + m.pierDepth * s + 10, DP.TS.call, (o.tags || []).map(([tx, ty]) => ({ x0: tx - 10, x1: tx + 10, y0: ty - 10, y1: ty + 10 })), 10);
+    callouts(sv, items, colX, 1, A.y + 24, gy + m.pierDepth * s + 10, DP.TS.call, (o.tags || []).map(([tx, ty]) => ({ x0: tx - 10, x1: tx + 10, y0: ty - 10, y1: ty + 10 })).concat(o.obstacles || []), 10);
     const title = v === 'front' ? 'FRONT ELEVATION' : 'SIDE ELEVATION (LEFT)';
     sv.viewTitle(A.x + 18, A.y + A.h - 30, '1', title, 'SCALE: ' + scaleLbl, meta.num);
     // key notes for this view (heights the City asks for on elevations)
-    const kn = ['DECK HEIGHT ' + fmt(m.H) + ' (' + DP.mm(m.H) + ' MM) ABOVE GRADE.', m.guardOn ? 'GUARD ' + fin(m.guardHIn) + ' HIGH ABOVE DECK SURFACE, ' + (st.guard.type === 'alum' ? 'ALUMINUM' : st.guard.type === 'glass' ? 'GLASS' : 'WOOD') + ' SYSTEM.' : 'NO GUARD REQUIRED (DECK 600 MM OR LESS ABOVE GRADE).'];
+    const kn = ['DECK HEIGHT ' + DP.heightPhrase(m) + ' (' + DP.mm(m.Hdec) + ' MM ABOVE THE GRADE USED FOR HEIGHT RULES).', m.guardOn ? 'GUARD ' + fin(m.guardHIn) + ' HIGH ABOVE DECK SURFACE, ' + (st.guard.type === 'alum' ? 'ALUMINUM' : st.guard.type === 'glass' ? 'GLASS' : 'WOOD') + ' SYSTEM.' : 'NO GUARD REQUIRED (DECK 600 MM OR LESS ABOVE FINISHED GRADE).'];
+    if (m.raiseOn) kn.push(DP.gradeRaiseNote(m));
     if (st0) kn.push(st0.handrail || st0.guard ? 'STAIR ' + (st0.guard ? 'GUARD 36" ABOVE NOSINGS, GRASPABLE HANDRAIL 865–1070 MM.' : 'HANDRAIL 865–1070 MM ABOVE NOSINGS.') : 'STAIR 3 RISERS OR LESS: NO HANDRAIL REQUIRED.');
     if (v !== 'front' && m.openings.length) kn.push('DOORS / BASEMENT WINDOWS IN THE HOUSE WALL: SEE THE OPENINGS TABLE ON A1 AND THE VIEW ON A2.');
-    const kx = A.x + 360; let ky = A.y + A.h - 44;
-    kn.forEach((l) => { sv.text(kx, ky, l, { size: 8 }); ky += 11; });
+    const knLines = kn.flatMap((l) => DP.wrapW(l, A.w - 380, 8));
+    const kx = A.x + 360; let ky = A.y + A.h - 18 - knLines.length * 10.5;
+    knLines.forEach((l) => { sv.text(kx, ky, l, { size: 8 }); ky += 10.5; });
     return sv;
   }
 

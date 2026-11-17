@@ -3,10 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>DeckPlan — deck permit drawings</title>
+<title>Deck Planner — deck permit drawings</title>
 <meta name="description" content="Enter a deck design and get City of Winnipeg permit-style blueprint drawings: site plan, overhead plan, front and side elevations, and a cross-section with details, one per PDF page.">
 <meta name="theme-color" content="#2b3036">
-<meta name="deckplan-version" content="1.3.1">
+<meta name="deckplan-version" content="1.3.2">
+<meta name="apple-mobile-web-app-title" content="Deck Planner">
+<meta name="application-name" content="Deck Planner">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="css/app.css">
@@ -15,7 +17,7 @@
 <header class="bar">
   <div class="brand">
     <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><rect x="1" y="1" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 22h22M5 26h22M9 22V12M23 22V12M5 12h22" stroke="currentColor" stroke-width="2" fill="none"/><path d="M5 12 16 5l11 7" stroke="#e8590c" stroke-width="2" fill="none"/></svg>
-    <div><strong>DeckPlan</strong><span id="hdrAddr">Permit drawings</span></div>
+    <div><strong>Deck Planner</strong><span id="hdrAddr">Permit drawings</span></div>
   </div>
   <div class="actions">
     <button class="ghost" id="btnOpen" title="Open a saved project file">Open</button>
@@ -32,7 +34,7 @@
 
 <main class="layout">
   <form class="inputs" id="form" autocomplete="off" onsubmit="return false">
-    <p class="hint">DeckPlan makes blueprint drawings: 5 sheets (site plan, overhead plan, front elevation, side elevation, cross-section and details). Johnny makes his own takeoff and pricing from the drawings. Lengths accept <code>16'</code>, <code>12'-6"</code>, <code>4.5</code> (feet) or <code>1200mm</code>. Drawings update as you type.</p>
+    <p class="hint">Deck Planner makes blueprint drawings: 5 sheets (site plan, overhead plan, front elevation, side elevation, cross-section and details). Johnny makes his own takeoff and pricing from the drawings. Lengths accept <code>16'</code>, <code>12'-6"</code>, <code>4.5</code> (feet) or <code>1200mm</code>. Drawings update as you type.</p>
 
     <details open><summary>Project &amp; title block</summary>
       <label>Owner<input data-k="project.owner"></label>
@@ -93,9 +95,14 @@
         <label>Width out from house<input data-k="deck.W" data-len></label>
       </div>
       <div class="row2">
-        <label>Deck surface above grade<input data-k="deck.H" data-len></label>
+        <label>Deck surface above existing grade<input data-k="deck.H" data-len></label>
         <label>Offset from house left corner<input data-k="deck.offset" data-len></label>
       </div>
+      <div class="row2">
+        <label>Customer raises grade<select data-k="deck.raiseGrade" data-type="bool"><option value="false">No</option><option value="true">Yes</option></select></label>
+        <label class="raise-only">Finished grade raise<input data-k="deck.gradeRaise" data-len placeholder="6&quot;"></label>
+      </div>
+      <p class="note" id="gradeNote"></p>
       <label class="free-only">Gap from house (freestanding)<input data-k="deck.gap" data-len></label>
       <label>Shape<select data-k="deck.shape" id="inShape"><option value="rect">Rectangle</option><option value="L">L-shape (main deck + wing)</option></select></label>
       <div class="l-only">
@@ -138,13 +145,13 @@
     </details>
 
     <details><summary>Footings</summary>
-      <p class="note">Johnny's rule (stricter than the City guide, so it wins): any permit deck over 2'-0" uses Gary Taylor helical piles, installed by a certified installer. Pylex piles only on decks 2'-0" or lower (typically no permit).</p>
+      <p class="note">Johnny's rule (stricter than the City guide, so it wins): any permit deck over 2'-0" <em>above finished grade</em> uses Gary Taylor helical piles, installed by a certified installer. Pylex piles only when the walking surface is 2'-0" or lower above finished grade (typically no height-based permit). Pile capacity and similar pile notes are listed as info, not as items to verify.</p>
       <label>Footing type<select data-k="found.type"><option value="screwpile">Screw pile (helical)</option><option value="sonotube">Sonotube concrete pier</option><option value="pad">Surface pad</option></select></label>
       <div class="row2">
         <label>Pier diameter<select data-k="found.dia" data-type="num"><option value="8">8"</option><option value="10">10"</option><option value="12">12"</option></select></label>
-        <label>Depth below grade<input data-k="found.depth" data-len></label>
+        <label>Depth below existing grade<input data-k="found.depth" data-len></label>
       </div>
-      <label>Pier top above grade<input data-k="found.above" data-len></label>
+      <label>Pier top above existing grade<input data-k="found.above" data-len></label>
       <div class="row2 pile-only">
         <label>Screw pile maker<input data-k="found.pileMaker" placeholder="Gary Taylor or Pylex"></label>
         <label>Pile model / note<input data-k="found.pileModel"></label>
