@@ -12,6 +12,11 @@ A static web app (HTML/JS, no backend, works offline). You enter a deck design a
 
 Each sheet has a border and a title block (Carpenter Johnny, project, address, legal description, owner, revision table, general notes, drawn by / checked / date / scale, sheet title and number such as "1 OF 5").
 
+## New in v1.3.5 (17 Nov 2026)
+
+- **PROPRIETARY INFORMATION on estimate copies.** The anti-theft watermark now includes the words "PROPRIETARY INFORMATION" in every diagonal tile stamp (`PROPRIETARY INFORMATION - ESTIMATE COPY - NOT FOR CONSTRUCTION - CARPENTER JOHNNY`, plus the project address and date) and as a large faded band through the big logo, on top of the linework, included in the flattened raster. Final paid copies stay clean, with no watermark.
+- Offline cache is `deckplan-v1.3.5`. PDF creator is `Deck Planner v1.3.5`. 101 tests. Sample estimate PDF and page PNGs are in `demo/v1.3.5/`.
+
 ## New in v1.3.4 (17 Nov 2026)
 
 - **Prototype set: three sheets.** Export PDF and the on-screen tabs are A0 Site plan, A1 Overhead plan, and A3 Side elevation. Sheet numbers stay A0 / A1 / A3; title blocks read "1 OF 3" … "3 OF 3". A2 Front elevation and A4 Cross-section & details are still in the code and can be turned back on by adding them to `DP.ENABLED_SHEETS` in `js/defaults.js`. Notes that used to point at A2 or A4 now point at a sheet that is in the set (for example knee braces and grade lines refer to the side elevation on A3, and openings on A3 send you to the table on A1).
@@ -76,8 +81,8 @@ Each sheet has a border and a title block (Carpenter Johnny, project, address, l
 - `js/sheets.js`, `js/sheets2.js`, `js/sheets3.js`: title block, site plan, overhead plan, elevations, and the cross-section / details builders
 - `vendor/`: jsPDF 4.2.1 and svg2pdf.js 2.9.0 (MIT, vendored locally, no CDN). jsPDF has a one-line patch so the embedded font's CID ordering reads "Identity", which some PDF readers need. The patch is noted in `LICENSE-jspdf.txt`.
 - `vendor/osifont-lgpl3fe.ttf`, `vendor/osifont.js`: osifont 0.1.20221020 (LGPL-3.0 with font exception, https://github.com/hikikomori82/osifont). The license text is in `vendor/LICENSE-osifont.txt`.
-- `sw.js`, `manifest.webmanifest`: offline/PWA. Cache name: `deckplan-v1.3.4`. The install / home-screen name is Deck Planner (`name` and `short_name` in the manifest, plus `apple-mobile-web-app-title`).
-- `demo/v1.3.4/`: v1.3.4 sample 3-page estimate PDF and page PNGs of the default 16'×12' deck, showing the anti-theft watermark. `demo/v1.3.3/` keeps the v1.3.3 five-sheet sample. `demo/v1.3/` keeps the v1.3.2 samples (that deck, the L-shaped deck with landing, and the grade-raise sample). `demo/v1.2/` is not a separate folder; older outputs remain in `demo/` alongside `demo/v1.0/` and `demo/v1.1/`.
+- `sw.js`, `manifest.webmanifest`: offline/PWA. Cache name: `deckplan-v1.3.5`. The install / home-screen name is Deck Planner (`name` and `short_name` in the manifest, plus `apple-mobile-web-app-title`).
+- `demo/v1.3.5/`: v1.3.5 sample 3-page estimate PDF and page PNGs of the default 16'×12' deck, with "PROPRIETARY INFORMATION" on the tiles and as a large band. `demo/v1.3.4/` keeps the v1.3.4 estimate sample. `demo/v1.3.3/` keeps the v1.3.3 five-sheet sample. `demo/v1.3/` keeps the v1.3.2 samples (that deck, the L-shaped deck with landing, and the grade-raise sample). `demo/v1.2/` is not a separate folder; older outputs remain in `demo/` alongside `demo/v1.0/` and `demo/v1.1/`.
 - `tools/e2e.py`: headless browser tests (Python Playwright, e.g. `/workspace/.venv-pw/bin/python tools/e2e.py`). Run it with the app served on 127.0.0.1:8931. `tools/overlap.js` is the overlap checker. `tools/svgdump.js` and `tools/shot.py` are render helpers.
 - `research/`: downloaded source PDFs and text, plus `JOHNNY-RULES.md`.
 

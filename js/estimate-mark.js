@@ -11,7 +11,7 @@
     tileLogoW: 88,       // pt, before per-tile size jitter
     sizeJitter: 0.16,
     rotJitter: 6,        // extra degrees around the 32° field
-    pitchX: 340,
+    pitchX: 380,
     pitchY: 165,
     dpi: 175,            // flattened estimate PDF
     jpegQuality: 0.82,
@@ -40,8 +40,8 @@
     const aspect = DP.WATERMARK_ASPECT || 1.37014925;
     const cx = W / 2, cy = H / 2, f = (n) => (Math.round(n * 1000) / 1000).toString();
     const p = (st && st.project) || {};
-    const rnd = seedRng(String(p.address || '') + '|' + String(p.date || '') + '|v1.3.4');
-    const headline = 'ESTIMATE COPY - NOT FOR CONSTRUCTION - CARPENTER JOHNNY';
+    const rnd = seedRng(String(p.address || '') + '|' + String(p.date || '') + '|v1.3.5');
+    const headline = 'PROPRIETARY INFORMATION - ESTIMATE COPY - NOT FOR CONSTRUCTION - CARPENTER JOHNNY';
     const job = jobLine(st);
     sv.add('<g data-role="estimate-watermark" pointer-events="none" style="mix-blend-mode:multiply">');
     sv.add('<defs><image id="dp-cj-logo" width="100" height="' + f(100 / aspect) + '" href="' + href + '" xlink:href="' + href + '" preserveAspectRatio="xMidYMid meet"/></defs>');
@@ -67,6 +67,12 @@
         sv.add('<text x="' + f(x) + '" y="' + f(y + 36) + '" font-family="osifont" font-size="' + f(sz * 0.92) + '" text-anchor="middle" fill="#000" opacity="' + f(top) + '" transform="rotate(' + f(trot) + ' ' + f(x) + ' ' + f(y + 36) + ')">' + esc(job) + '</text>');
       }
     }
+    sv.add('</g>');
+    // Large faded band through the big logo, on top of the tiles and the linework.
+    const bannerY = cy + 118, bannerSize = 64, bannerOp = 0.15;
+    sv.add('<g data-role="estimate-proprietary">');
+    sv.add('<rect x="36" y="' + f(bannerY - 40) + '" width="' + f(W - 72) + '" height="58" fill="#000" opacity="0.05"/>');
+    sv.add('<text x="' + f(cx) + '" y="' + f(bannerY) + '" font-family="osifont" font-size="' + bannerSize + '" text-anchor="middle" fill="#000" opacity="' + bannerOp + '" stroke="#000" stroke-width="' + f(bannerSize * 0.045) + '" stroke-linejoin="round">PROPRIETARY INFORMATION</text>');
     sv.add('</g></g>');
   };
 })();

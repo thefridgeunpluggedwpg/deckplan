@@ -185,7 +185,7 @@
     }
     stage.innerHTML = '';
     const kind = estimate ? 'estimate copy (watermarked)' : 'final paid copy (clean)';
-    doc.setProperties({ title: 'Deck Planner — ' + (st.project.address || 'deck permit drawings') + ' — ' + kind, subject: 'Residential deck, City of Winnipeg', author: st.project.drawnBy || 'Carpenter Johnny', creator: 'Deck Planner v1.3.4' });
+    doc.setProperties({ title: 'Deck Planner — ' + (st.project.address || 'deck permit drawings') + ' — ' + kind, subject: 'Residential deck, City of Winnipeg', author: st.project.drawnBy || 'Carpenter Johnny', creator: 'Deck Planner v1.3.5' });
     doc.save(filename);
     return doc;
   }
