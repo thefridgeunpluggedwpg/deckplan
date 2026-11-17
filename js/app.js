@@ -145,7 +145,7 @@
       await doc.svg(el, { x: (fmtA[0] - w) / 2, y: (fmtA[1] - h) / 2, width: w, height: h });
     }
     stage.innerHTML = '';
-    doc.setProperties({ title: 'Deck Planner — ' + (st.project.address || 'deck permit drawings'), subject: 'Residential deck, City of Winnipeg', author: st.project.drawnBy || 'Carpenter Johnny', creator: 'Deck Planner v1.3.2' });
+    doc.setProperties({ title: 'Deck Planner — ' + (st.project.address || 'deck permit drawings'), subject: 'Residential deck, City of Winnipeg', author: st.project.drawnBy || 'Carpenter Johnny', creator: 'Deck Planner v1.3.3' });
     doc.save(filename);
     return doc;
   }

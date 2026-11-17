@@ -157,7 +157,11 @@
       const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, dx = x2 - x1, dy = y2 - y1, l = Math.hypot(dx, dy), ux = dx / l, uy = dy / l, nx = -uy, ny = ux;
       return this.pl([[x1 - ux * 4, y1 - uy * 4], [mx - ux * 4, my - uy * 4], [mx - ux * 1.5 + nx * 6, my - uy * 1.5 + ny * 6], [mx + ux * 1.5 - nx * 6, my + uy * 1.5 - ny * 6], [mx + ux * 4, my + uy * 4], [x2 + ux * 4, y2 + uy * 4]], LW.t);
     }
-    image(x, y, w, h, href) { return this.add(`<image x="${f(x)}" y="${f(y)}" width="${f(w)}" height="${f(h)}" preserveAspectRatio="xMidYMid meet" href="${href}" xlink:href="${href}"/>`); }
+    image(x, y, w, h, href, o = {}) {
+      const op = o.opacity != null ? ` opacity="${f(o.opacity)}"` : '';
+      const role = o.role ? ` data-role="${o.role}"` : '';
+      return this.add(`<image x="${f(x)}" y="${f(y)}" width="${f(w)}" height="${f(h)}" preserveAspectRatio="xMidYMid meet" href="${href}" xlink:href="${href}"${op}${role}/>`);
+    }
     toString(W, H) {
       return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/>${this.p.join('')}</svg>`;
     }

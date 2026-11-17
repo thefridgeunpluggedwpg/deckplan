@@ -12,6 +12,11 @@ A static web app (HTML/JS, no backend, works offline). You enter a deck design a
 
 Each sheet has a border and a title block (Carpenter Johnny, project, address, legal description, owner, revision table, general notes, drawn by / checked / date / scale, sheet title and number such as "1 OF 5").
 
+## New in v1.3.3 (17 Nov 2026)
+
+- **Carpenter Johnny watermark.** Every sheet — on screen and in the PDF — has the official Carpenter Johnny logo (hat, maple leaf, and wordmark) centered in the drawing field as a faint grayscale mark, at about 8% opacity. The title block stays clear: the watermark sits behind the drawing and a white fill covers the title-block column. The logo is bundled in `icons/cj-watermark.png` and embedded as a data URI so offline export still has it.
+- Offline cache is `deckplan-v1.3.3`. PDF creator is `Deck Planner v1.3.3`. 86 tests. Sample 5-page PDF and page PNGs are in `demo/v1.3.3/`.
+
 ## New in v1.3.2 (17 Nov 2026)
 
 - **Name.** The app is called Deck Planner everywhere you see it (page title, header, home-screen / install name, PDF title and creator). Internal identifiers are unchanged: the repo and Pages URL stay `/deckplan`, the offline cache prefix is still `deckplan-`, and saved projects still use the same localStorage key and `.deckplan.json` extension, so existing files still open.
@@ -58,14 +63,15 @@ Each sheet has a border and a title block (Carpenter Johnny, project, address, l
 ## Files
 
 - `index.html`, `css/app.css`, `js/app.js`: UI and live preview
+- `js/watermark.js`, `icons/cj-watermark.png`: faded Carpenter Johnny logo watermark (also inlined as a data URI)
 - `js/engine.js`: length parsing, City tables, Johnny's foundation rule, framing geometry, design checks
 - `js/defaults.js`: Johnny's standard build (the editable sample project)
 - `js/svgkit.js`: CAD primitives (line weights, architectural-tick dimensions, leaders, hatches, level markers, view titles)
 - `js/sheets.js`, `js/sheets2.js`, `js/sheets3.js`: title block, site plan, overhead plan, elevations, and the cross-section / details builders
 - `vendor/`: jsPDF 4.2.1 and svg2pdf.js 2.9.0 (MIT, vendored locally, no CDN). jsPDF has a one-line patch so the embedded font's CID ordering reads "Identity", which some PDF readers need. The patch is noted in `LICENSE-jspdf.txt`.
 - `vendor/osifont-lgpl3fe.ttf`, `vendor/osifont.js`: osifont 0.1.20221020 (LGPL-3.0 with font exception, https://github.com/hikikomori82/osifont). The license text is in `vendor/LICENSE-osifont.txt`.
-- `sw.js`, `manifest.webmanifest`: offline/PWA. Cache name: `deckplan-v1.3.2`. The install / home-screen name is Deck Planner (`name` and `short_name` in the manifest, plus `apple-mobile-web-app-title`).
-- `demo/v1.3/`: v1.3.2 sample 5-page PDFs, page PNGs and project files (the 16'x12' 4' sample, the L-shaped deck with landing, and the 2'-3" existing / 6" grade-raise sample). `demo/v1.2/` is not a separate folder; older outputs remain in `demo/` alongside `demo/v1.0/` and `demo/v1.1/`.
+- `sw.js`, `manifest.webmanifest`: offline/PWA. Cache name: `deckplan-v1.3.3`. The install / home-screen name is Deck Planner (`name` and `short_name` in the manifest, plus `apple-mobile-web-app-title`).
+- `demo/v1.3.3/`: v1.3.3 sample 5-page PDF and page PNGs of the default 16'×12' deck, showing the watermark. `demo/v1.3/` keeps the v1.3.2 samples (that deck, the L-shaped deck with landing, and the grade-raise sample). `demo/v1.2/` is not a separate folder; older outputs remain in `demo/` alongside `demo/v1.0/` and `demo/v1.1/`.
 - `tools/e2e.py`: headless browser tests (Python Playwright, e.g. `/workspace/.venv-pw/bin/python tools/e2e.py`). Run it with the app served on 127.0.0.1:8931. `tools/overlap.js` is the overlap checker. `tools/svgdump.js` and `tools/shot.py` are render helpers.
 - `research/`: downloaded source PDFs and text, plus `JOHNNY-RULES.md`.
 

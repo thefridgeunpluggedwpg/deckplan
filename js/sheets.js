@@ -9,10 +9,25 @@
   DP.SHEET = SHEET;
   const TS = DP.TS;
 
+  /* Faded Carpenter Johnny logo, centered in the drawing field (left of the title block).
+     Opacity is baked into the PNG (8%), so the mark stays faint in the PDF even if svg2pdf drops the opacity attribute. */
+  function watermark(sv, area) {
+    const href = DP.WATERMARK_DATA;
+    if (!href) return;
+    const aspect = DP.WATERMARK_ASPECT || 1.37;
+    const maxW = area.w * 0.56, maxH = area.h * 0.60;
+    let w = maxW, h = w / aspect;
+    if (h > maxH) { h = maxH; w = h * aspect; }
+    const x = area.x + (area.w - w) / 2, y = area.y + (area.h - h) / 2;
+    sv.image(x, y, w, h, href, { role: 'watermark' });
+  }
   function frame(sv, m, st, meta) {
+    const x = B.x1 - 4 - TB, y0 = B.y0 + 4, y1 = B.y1 - 4, w = TB;
+    const area = { x: B.x0 + 4, y: y0, w: x - B.x0 - 4, h: y1 - y0 };
+    watermark(sv, area);
+    sv.rect(x, y0, w, y1 - y0, 0, { fill: '#fff', stroke: 'none' });
     sv.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0, LW.xh);
     sv.rect(B.x0 + 4, B.y0 + 4, B.x1 - B.x0 - 8, B.y1 - B.y0 - 8, LW.t);
-    const x = B.x1 - 4 - TB, y0 = B.y0 + 4, y1 = B.y1 - 4, w = TB;
     sv.line(x, y0, x, y1, LW.h);
     const p = st.project;
     const lbl = (tx, ty, s) => sv.text(tx, ty, s, { size: 7 });
@@ -80,7 +95,7 @@
     lbl(x + 6, yb + 10, 'SHEET');
     sv.text(x + w / 2, yb + 50, meta.num, { size: 34, bold: true, anchor: 'middle' });
     sv.text(x + w - 6, yb + 63, meta.of, { size: 8, anchor: 'end' });
-    return { x: B.x0 + 4, y: B.y0 + 4, w: x - B.x0 - 4, h: y1 - y0 };
+    return area;
   }
   function wrap(s, n) {
     const words = String(s).split(/\s+/); const out = []; let cur = '';
