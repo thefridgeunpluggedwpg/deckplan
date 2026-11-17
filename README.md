@@ -1,31 +1,39 @@
 # DeckPlan v1.3: deck permit drawings for Carpenter Johnny
 
-A static web app (HTML/JS, no backend, works offline). You enter a deck design and it draws a CAD-style permit set. Blueprint drawings only: exactly three views, each on its own PDF page. Johnny makes his own material list from the drawings.
+A static web app (HTML/JS, no backend, works offline). You enter a deck design and it draws a CAD-style permit set. Blueprint drawings only: five sheets, each on its own PDF page. Johnny makes his own takeoff and pricing from the drawings. There is no material list, budget or 3D view.
 
 | Sheet | Contents |
 |---|---|
+| A0 Site plan | Lot outline with dimensions, house and deck footprints (deck dimensioned to the house), setbacks from the deck to the side and rear property lines (a, b) and the dwelling rear yard (c), street and lane labels, north arrow, scale, civic address and legal description. Follows the City of Winnipeg deck guide / addition-form site plan requirements |
 | A1 Overhead plan: framing & foundation | Ledger, joists, beams, posts, footings (including stair foot piles), guard line, stair, dimension chains, footing schedule, openings table, framing notes |
 | A2 Front elevation | One view per sheet, at the largest standard scale that fits. Deck height and guard dimensions, level markers, callouts, and key notes (deck height, guard height and type, stair guard and handrail) |
 | A3 Side elevation | Same layout as A2, looking at the left end |
+| A4 Cross-section and details | A section from the house wall to the outer beam (ledger, flashing, hangers, joists, beam on post, post-to-pile connection, guard, decking, grade and height dims), plus enlarged ledger and post/beam/pile details, and a stair stringer detail when the project has a stair |
 
-Each sheet has a border and a title block (Carpenter Johnny, project, address, legal description, owner, revision table, general notes, drawn by / checked / date / scale, sheet title and number such as "1 OF 3").
+Each sheet has a border and a title block (Carpenter Johnny, project, address, legal description, owner, revision table, general notes, drawn by / checked / date / scale, sheet title and number such as "1 OF 5").
+
+## New in v1.3.1 (17 Nov 2026)
+
+- **Five sheets, still drawings only.** After a review of the unpublished 3-view v1.3 set, Export PDF is the 5-page set in this order: A0 site plan, A1 overhead plan, A2 front elevation, A3 side elevation, A4 cross-section and details (title blocks read "1 OF 5" … "5 OF 5"). Material list, budget, labour, checklist, site photos and any 3D view stay out of the UI and the PDF. The in-app checks badge still lists OK/NG/VERIFY items so you can review the design before you export.
+- **Site plan inputs** on the form (lot width and depth, house size and front/left setbacks, deck offset from the house's left corner, street name, lane yes/no, north facing, optional side-yard requirement, garage, overhead lines). Sensible sample defaults are saved in the project JSON. Anything not entered is labelled VERIFY. Side and rear setbacks from the deck to the property lines are computed from those inputs (not typed as raw a/b distances).
+- **Cross-section and connection details** on A4, using the same stricter-of-code-or-Johnny's-SOP rules as the other sheets (Gary Taylor helical piles on permit decks over 2'-0"; Pylex only at 2'-0" or lower).
+- Offline cache is `deckplan-v1.3.1`. 68 tests.
 
 ## New in v1.3 (17 Nov 2026)
 
-- **Drawings only, three views.** Export PDF is the 3-page set (overhead plan, front elevation, side elevation). The material list, budget, labour line, site plan, deck section, design-checks sheet, City checklist sheet, site photos and any 3D view are removed from the UI and the PDF. The in-app checks badge still lists OK/NG/VERIFY items so you can review the design before you export.
+- **Drawings only.** The first v1.3 cut was a 3-page set (overhead plan, front elevation, side elevation). Material list, budget, labour, checklist, site photos and 3D were removed from the UI and the PDF. v1.3.1 keeps that rule and adds the site plan and section the City still asks for.
 - **Johnny's foundation rule** (stricter than the City guide, so it wins): any permit deck over 2'-0" uses Gary Taylor helical piles, installed by a certified installer. Pylex piles only on decks 2'-0" or lower (typically no permit). The sample default is a 4'-0" deck on Gary Taylor helical piles. A different foundation on a permit-height deck is marked NG.
 - **Stair foot piles.** A stair about 4'-0" wide sits on 2 piles; a larger stair gets 3. The exact width cutoff for 3 is TBD from Johnny, so 3-pile stairs are marked VERIFY. On a permit-height deck these piles follow the same Gary Taylor rule as the deck.
-- Offline cache is `deckplan-v1.3.0`. 60 tests.
 
 ## New in v1.2 (15 Nov 2026)
 
-- Each of the three views filled its own sheet (in v1.2 this sat alongside a site plan, section, checks and material list).
+- Each of the three building views filled its own sheet, alongside a site plan, section, checks and material list.
 - Readability: minimum text 7 pt (2.5 mm), notes and callouts 7.5–8 pt, dimensions 10 pt (3.5 mm), view titles 16 pt. Object lines are heavy (1.2–1.8 pt) and dimension lines thin (0.3 pt). Tests require 0 text overlaps and scales of 3/16" = 1'-0" or larger on plan and elevations.
-- City compliance notes and joist-projection rules (2x6 needs a seal, 2x8 is VERIFY over 16", 2x10+ is OK to 24"). `research/WPG-SUBMISSION-COMPLIANCE.md` maps City requirements to sheets; the site-plan and section rows there describe v1.2, which v1.3 no longer prints.
+- City compliance notes and joist-projection rules (2x6 needs a seal, 2x8 is VERIFY over 16", 2x10+ is OK to 24"). `research/WPG-SUBMISSION-COMPLIANCE.md` maps City requirements to sheets; v1.3.1 again prints the site plan and the cross-section / details sheet.
 
 ## New in v1.1 (14 Nov 2026)
 
-- **Doors and basement windows** on the house wall (MB ITS Guide 06). They are tagged D1/W1 on all three sheets, with an openings table on A1 and a WELL note on the elevation when a window is below grade. A bedroom window under the deck is a VERIFY item for egress.
+- **Doors and basement windows** on the house wall (MB ITS Guide 06). They are tagged D1/W1 on the site plan, overhead plan and front elevation, with an openings table on A1 and a WELL note on the elevation when a window is below grade. The side elevation points back to that table. A bedroom window under the deck is a VERIFY item for egress.
 - **Post bracing.** When posts are taller than 1.5 m (5'-0"), 2x6 knee braces at 45° are drawn on both elevations with a callout marked "SIZE VERIFY".
 - **L-shaped decks.** A main deck plus a wing at either end, split into framed zones sized to City Tables 2 and 3. The joint has a doubled, through-bolted rim, marked VERIFY.
 - **Stair landing.** A straight-run landing partway down, framed as its own platform on its own posts and footings, scheduled as F2. The stair foot piles are scheduled as F3 when a landing is present, or F2 when it is not.
@@ -36,7 +44,7 @@ Each sheet has a border and a title block (Carpenter Johnny, project, address, l
 ## Run it
 
 - Open `index.html` from any static web server (for example `python3 -m http.server` in this folder, then visit `/index.html`). Opening the file directly also works; offline caching only switches on when it's served over http(s).
-- **Export PDF** saves one 3-page PDF (11x17 landscape by default, or a reduced 8.5x11 with a "do not scale / reduced print" note). The PDF is vector and not locked, so the City's reviewers can add comments and stamps.
+- **Export PDF** saves one 5-page PDF (11x17 landscape by default, or a reduced 8.5x11 with a "do not scale / reduced print" note). The PDF is vector and not locked, so the City's reviewers can add comments and stamps. Save / Open round-trip includes the site plan inputs.
 - Save and Open store the whole project as a `.json` file. The last project is also kept in the browser.
 
 ## Files
@@ -45,11 +53,11 @@ Each sheet has a border and a title block (Carpenter Johnny, project, address, l
 - `js/engine.js`: length parsing, City tables, Johnny's foundation rule, framing geometry, design checks
 - `js/defaults.js`: Johnny's standard build (the editable sample project)
 - `js/svgkit.js`: CAD primitives (line weights, architectural-tick dimensions, leaders, hatches, level markers, view titles)
-- `js/sheets.js`, `js/sheets2.js`, `js/sheets3.js`: title block and the three sheet builders
+- `js/sheets.js`, `js/sheets2.js`, `js/sheets3.js`: title block, site plan, overhead plan, elevations, and the cross-section / details builders
 - `vendor/`: jsPDF 4.2.1 and svg2pdf.js 2.9.0 (MIT, vendored locally, no CDN). jsPDF has a one-line patch so the embedded font's CID ordering reads "Identity", which some PDF readers need. The patch is noted in `LICENSE-jspdf.txt`.
 - `vendor/osifont-lgpl3fe.ttf`, `vendor/osifont.js`: osifont 0.1.20221020 (LGPL-3.0 with font exception, https://github.com/hikikomori82/osifont). The license text is in `vendor/LICENSE-osifont.txt`.
-- `sw.js`, `manifest.webmanifest`: offline/PWA. Cache name: `deckplan-v1.3.0`.
-- `demo/v1.3/`: v1.3 sample PDFs, page PNGs and project files (the 16'x12' 4' sample and the L-shaped deck with landing). `demo/v1.2/` is not a separate folder; v1.2 outputs remain in `demo/` alongside `demo/v1.0/` and `demo/v1.1/`.
+- `sw.js`, `manifest.webmanifest`: offline/PWA. Cache name: `deckplan-v1.3.1`.
+- `demo/v1.3/`: v1.3.1 sample 5-page PDFs, page-0..4 PNGs and project files (the 16'x12' 4' sample and the L-shaped deck with landing). `demo/v1.2/` is not a separate folder; older outputs remain in `demo/` alongside `demo/v1.0/` and `demo/v1.1/`.
 - `tools/e2e.py`: headless browser tests (Python Playwright, e.g. `/workspace/.venv-pw/bin/python tools/e2e.py`). Run it with the app served on 127.0.0.1:8931. `tools/overlap.js` is the overlap checker. `tools/svgdump.js` and `tools/shot.py` are render helpers.
 - `research/`: downloaded source PDFs and text, plus `JOHNNY-RULES.md`.
 
@@ -78,18 +86,15 @@ Values come only from the sources above. Anything the sources don't settle is pr
 
 ## Not covered
 
-- A **site plan** (lot, street/lane, setbacks, north arrow, overhead lines). The City still asks for one with a permit application. v1.3 does not draw it; that page was removed so the set is drawings-only. Johnny will need a separate site plan for submission.
-- A **cross-section / connection details** sheet (ledger, stair section). The City addition form lists a cross-section with construction details. v1.3 puts framing and foundation on the overhead plan and shows heights on the elevations, but there is no dedicated section sheet.
-- Material list, budget and labour. Johnny makes his own material list from the drawings.
+- Material list, budget and labour. Johnny makes his own takeoff and pricing from the drawings.
 - Electrical (separate City permit), hot tubs, roofs or enclosures over the deck. Brace sizing is drawn but marked VERIFY. (Hot tubs and sunrooms are helical piles per Johnny's SOP, but the app has no hot-tub input.)
 - Bedroom window egress is flagged, not designed.
-- Irregular lots, decks wrapping a corner (more than one wing), multi-level decks, turning (90°) stair landings, beams spliced over posts. Spans beyond the City tables need an engineer.
+- Irregular lots, decks wrapping a corner (more than one wing), multi-level decks, turning (90°) stair landings, beams spliced over posts. Spans beyond the City tables need an engineer. Side-yard zoning is not filled in by default, so side setbacks are marked VERIFY until a required side yard is entered. Legal description on the sample is a placeholder marked VERIFY. Pile tested capacity is VERIFY.
 - Paper size isn't set in the City's deck material. v1.3 defaults to 11x17. Letter is a reduced print with a "do not scale" note.
 - Nothing is stamped or certified. It is a contractor-prepared drawing set based on the City's prescriptive guide and Johnny's SOP.
 
 ## Ideas for later
 
-- Bring the site plan back as an optional fourth sheet if Johnny wants the City submission package in one export.
 - Photo or sketch to dimensions: read a rough sketch or site photos and pre-fill the form.
 - Hosted version behind a login, with projects saved per client job.
 - Turning (L/U) stair landings, multi-level decks, wrap-around and U-shaped decks, and an engineered-brace detail once the City or an engineer gives a size.

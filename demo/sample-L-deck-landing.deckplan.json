@@ -21,11 +21,35 @@
   ],
   "notes": ""
  },
+ "site": {
+  "street": "SAMPLE STREET",
+  "lane": true,
+  "laneName": "REAR LANE",
+  "faces": "N",
+  "lotW": "50'",
+  "lotD": "120'",
+  "houseW": "36'",
+  "houseD": "30'",
+  "frontSB": "25'",
+  "leftSB": "7'",
+  "sideReq": "",
+  "overhead": false,
+  "overheadNote": "",
+  "garage": {
+   "on": true,
+   "w": "22'",
+   "d": "22'",
+   "rear": "3'",
+   "right": "3'"
+  },
+  "dimSource": ""
+ },
  "deck": {
   "attach": "attached",
   "L": "20'",
   "W": "12'",
   "H": "7'",
+  "offset": "10'",
   "gap": "1'",
   "shape": "L",
   "extSide": "right",

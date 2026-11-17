@@ -10,7 +10,12 @@
         drawnBy: 'CARPENTER JOHNNY', firmLine: 'CARPENTRY CONTRACTOR', firmCity: 'WINNIPEG, MANITOBA', contact: '', checkedBy: '',
         date: today(), revisions: [{ no: '0', date: today(), desc: 'ISSUED FOR CONSTRUCTION' }], notes: '',
       },
-      deck: { attach: 'attached', L: "16'", W: "12'", H: "4'", gap: "1'", shape: 'rect', extSide: 'right', extW: "8'", extD: "6'" },
+      site: {
+        street: 'SAMPLE STREET', lane: true, laneName: 'REAR LANE', faces: 'N', lotW: "50'", lotD: "120'",
+        houseW: "36'", houseD: "30'", frontSB: "25'", leftSB: "7'", sideReq: '', overhead: false, overheadNote: '',
+        garage: { on: true, w: "22'", d: "22'", rear: "3'", right: "3'" }, dimSource: '',
+      },
+      deck: { attach: 'attached', L: "16'", W: "12'", H: "4'", offset: "10'", gap: "1'", shape: 'rect', extSide: 'right', extW: "8'", extD: "6'" },
       // doors / basement windows on the house wall behind the deck; "at" = from the deck's left end to the opening's left edge
       openings: [
         { type: 'door', at: "5'", w: "6'", h: '6\'-8"', bedroom: false, label: 'PATIO DOOR' },

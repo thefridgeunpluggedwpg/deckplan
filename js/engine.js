@@ -317,6 +317,17 @@
     const area = zones.reduce((a, z) => a + z.Lx * z.Wy, 0);
     const landingArea = landing ? landing.rect.w * landing.rect.h : 0;
 
+    // site plan geometry (City addition form: lot, existing buildings, distances to all property lines)
+    const site = st.site || {};
+    const lotW = DP.parseLen(site.lotW), lotD = DP.parseLen(site.lotD);
+    const hW = DP.parseLen(site.houseW), hD = DP.parseLen(site.houseD);
+    const hFront = DP.parseLen(site.frontSB), hLeft = DP.parseLen(site.leftSB);
+    const dOff = DP.parseLen(d.offset) || 0;
+    const siteOk = [lotW, lotD, hW, hD, hFront, hLeft].every(isFinite);
+    const deckSite = { x: (isFinite(hLeft) ? hLeft : 0) + dOff, y: (isFinite(hFront) ? hFront : 0) + (isFinite(hD) ? hD : 0) + (attached ? 0 : DP.parseLen(d.gap) || 1) };
+    const sideL = deckSite.x, sideR = (isFinite(lotW) ? lotW : 0) - deckSite.x - L, rearD = (isFinite(lotD) ? lotD : 0) - deckSite.y - Wt;
+    const houseRear = (isFinite(lotD) && isFinite(hFront) && isFinite(hD)) ? lotD - hFront - hD : NaN;
+
     /* ---------- checks ---------- */
     const checks = [];
     const add = (item, req, prov, status, src) => checks.push({ item, req, prov, status, src });
@@ -392,12 +403,21 @@
     add('Basement windows in deck area', 'Location; note if bedroom', wins.length ? wins.map((o) => o.mark + (o.bedroom ? ' (bedroom)' : '')).join(', ') : 'none entered', wins.length ? 'OK' : 'INFO', 'MB ITS Guide 06 s.2');
     wins.filter((o) => o.bedroom).forEach((o) => add('Bedroom window ' + o.mark + ' under deck', 'Egress clearance per MBC', 'see elevations', 'VERIFY', 'MB ITS Guide 06 s.2 / MBC'));
     if (dk.material === 'composite') add('Decking vs joist spacing', 'Per decking maker', spacing + '" o.c.', 'VERIFY', SRC_W + ' p.7');
+    if (!siteOk) add('Site dimensions', 'Lot, house size and house setbacks entered', 'missing or not readable', 'VERIFY', 'CoW addition form');
+    else {
+      if (HIn > 24) add('Rear yard setback', "7.5 m (25'-0\") min.", DP.fmt(rearD), rearD >= C.rearYardFt - 0.01 ? 'OK' : 'NG', SRC_W + ' Fig.1');
+      const sideReq = DP.parseLen(site.sideReq);
+      add('Side yard setbacks', isFinite(sideReq) ? DP.fmt(sideReq) + ' min. (zoning)' : 'Same as dwelling (zoning)', DP.fmt(Math.min(sideL, sideR)), isFinite(sideReq) ? (Math.min(sideL, sideR) >= sideReq ? 'OK' : 'NG') : 'VERIFY', SRC_W + ' Fig.1');
+    }
+    if (site.overhead) add('Overhead power lines', '3.5 m (11\'-6") min. above deck', 'see site plan', 'VERIFY', SRC_W + ' p.10');
+    if (!(st.project.legal || '').trim() || /VERIFY/i.test(st.project.legal || '')) add('Legal description', 'Lot / block / plan on the site plan', st.project.legal || 'not entered', 'VERIFY', 'CoW addition form');
 
     const model = {
       L, W, Wt, H, R: sec.R, S: sec.S, attached, perp, jt, jdIn, beam, postIn, deckTIn, spacing, cant, beamOH, postMax,
       topDeck, topJoist, botJoist, beamTop, beamBot, useLedger: sec.useLedger, anyLedger: useLedger, allowedIn, clear, nSpans: sec.nSpans, beamsV: sec.beamsV, sjl: sec.sjl, sjlMax,
       postsU: sec.postsU, postSp, nPosts: sec.nPosts, joistsU: sec.joistsU, nJ, joistLen: sec.joistLen, footings, maxLoad, deepReq, pierAbove, pierDepth, pierTop, postH, braceAt, braced: postH > braceAt,
       guardReq, guardOn, guardHIn, guardRuns, landingRuns, guardLF, stair, landing, stairFootings: (stair && stair.footings) || [], area, landingArea, shape, poly, edges, zones, sec, openings, heights,
+      lotW, lotD, hW, hD, hFront, hLeft, deckSite, sideL, sideR, rearD, houseRear, siteOk,
       checks, st, ohMax,
     };
     return model;

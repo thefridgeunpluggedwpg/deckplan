@@ -5,7 +5,7 @@
   const $ = (s, el = document) => el.querySelector(s);
   const $$ = (s, el = document) => [...el.querySelectorAll(s)];
   let st = load();
-  let model = null, sheets = [], cur = 'A1', timer = 0;
+  let model = null, sheets = [], cur = 'A0', timer = 0;
 
   function load() {
     try { const j = JSON.parse(localStorage.getItem(KEY)); if (j && j.v === 1) return merge(DP.defaultState(), j); } catch (e) { /* ignore */ }
@@ -60,6 +60,8 @@
     $$('.l-only').forEach((e) => (e.style.display = st.deck.shape === 'L' ? '' : 'none'));
     $$('.landing-only').forEach((e) => (e.style.display = st.stairs.on && st.stairs.landing && st.stairs.landing.on ? '' : 'none'));
     $$('.pile-only').forEach((e) => (e.style.display = st.found.type === 'screwpile' ? '' : 'none'));
+    $$('.garage-only').forEach((e) => (e.style.display = st.site && st.site.garage && st.site.garage.on ? '' : 'none'));
+    $$('.overhead-only').forEach((e) => (e.style.display = st.site && st.site.overhead ? '' : 'none'));
   }
 
   $('#form').addEventListener('input', onEdit);
@@ -78,7 +80,7 @@
   }
 
   function valid() {
-    const req = ['deck.L', 'deck.W', 'deck.H'];
+    const req = ['deck.L', 'deck.W', 'deck.H', 'site.lotW', 'site.lotD', 'site.houseW', 'site.houseD', 'site.frontSB', 'site.leftSB'];
     if (st.deck.shape === 'L') req.push('deck.extW', 'deck.extD');
     if (st.stairs.on && st.stairs.landing && st.stairs.landing.on) req.push('stairs.landing.depth');
     (st.openings || []).forEach((o, i) => req.push('openings.' + i + '.at', 'openings.' + i + '.w', 'openings.' + i + '.h'));
@@ -91,7 +93,7 @@
     try { model = DP.compute(st); sheets = DP.buildSheets(model, st); }
     catch (e) { console.error(e); toast('Could not draw with these numbers: ' + e.message); return; }
     $('#hdrAddr').textContent = (st.project.address || 'No address') + ' · ' + (model.shape ? 'L ' : '') + DP.fmt(model.L) + ' × ' + DP.fmt(model.Wt);
-    if (!sheets.find((s) => s.num === cur)) cur = 'A1';
+    if (!sheets.find((s) => s.num === cur)) cur = 'A0';
     $('#tabs').innerHTML = sheets.map((s) => `<button role="tab" aria-selected="${s.num === cur}" data-s="${s.num}">${s.num} ${esc(s.short || title(s.title))}</button>`).join('');
     showSheet();
     // checks chip
@@ -137,7 +139,7 @@
       await doc.svg(el, { x: (fmtA[0] - w) / 2, y: (fmtA[1] - h) / 2, width: w, height: h });
     }
     stage.innerHTML = '';
-    doc.setProperties({ title: 'Deck permit drawings — ' + (st.project.address || ''), subject: 'Residential deck, City of Winnipeg', author: st.project.drawnBy || 'Carpenter Johnny', creator: 'DeckPlan v1.3.0' });
+    doc.setProperties({ title: 'Deck permit drawings — ' + (st.project.address || ''), subject: 'Residential deck, City of Winnipeg', author: st.project.drawnBy || 'Carpenter Johnny', creator: 'DeckPlan v1.3.1' });
     doc.save(filename);
     return doc;
   }
@@ -148,7 +150,7 @@
       const reduced = st.out.paper === 'letter';
       const list = DP.buildSheets(model, st, { reduced });
       await pdf(list, 'deck-permit-' + slug() + '.pdf');
-      toast('PDF saved: ' + list.length + ' sheets (overhead plan, front elevation, side elevation).');
+      toast('PDF saved: ' + list.length + ' sheets (site plan, overhead plan, front and side elevations, section).');
     } catch (e) { console.error(e); toast('PDF export failed: ' + e.message); }
     b.disabled = false; b.textContent = 'Export PDF';
   }
