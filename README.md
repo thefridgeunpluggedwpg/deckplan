@@ -12,6 +12,12 @@ A static web app (HTML/JS, no backend, works offline). You enter a deck design a
 
 Each sheet has a border and a title block (Carpenter Johnny, project, address, legal description, owner, revision table, general notes, drawn by / checked / date / scale, sheet title and number such as "1 OF 5").
 
+## New in v1.3.4 (17 Nov 2026)
+
+- **Prototype set: three sheets.** Export PDF and the on-screen tabs are A0 Site plan, A1 Overhead plan, and A3 Side elevation. Sheet numbers stay A0 / A1 / A3; title blocks read "1 OF 3" … "3 OF 3". A2 Front elevation and A4 Cross-section & details are still in the code and can be turned back on by adding them to `DP.ENABLED_SHEETS` in `js/defaults.js`. Notes that used to point at A2 or A4 now point at a sheet that is in the set (for example knee braces and grade lines refer to the side elevation on A3, and openings on A3 send you to the table on A1).
+- **Anti-theft estimate copy.** A Copy type control (default *Estimate copy (watermarked)*) puts a large Carpenter Johnny logo (85% of the sheet width, 12% opacity) plus a 32° tiled stamp across the whole page, title block included: "ESTIMATE COPY - NOT FOR CONSTRUCTION - CARPENTER JOHNNY" and the project address and date, at 8–20% opacity with small size and rotation jitter. The tile layer sits on top of the linework (multiply). The estimate PDF is flattened to one 175 dpi JPEG per page so the mark cannot be deleted as a separate object. *Final paid copy (clean)* has no watermark and stays vector. File names are tagged `-ESTIMATE` or `-FINAL`. The choice is saved with the project.
+- Offline cache is `deckplan-v1.3.4`. PDF creator is `Deck Planner v1.3.4`. 100 tests. Sample estimate PDF and page PNGs are in `demo/v1.3.4/`.
+
 ## New in v1.3.3 (17 Nov 2026)
 
 - **Carpenter Johnny watermark.** Every sheet — on screen and in the PDF — has the official Carpenter Johnny logo (hat, maple leaf, and wordmark) centered in the drawing field as a faint grayscale mark, at about 8% opacity. The title block stays clear: the watermark sits behind the drawing and a white fill covers the title-block column. The logo is bundled in `icons/cj-watermark.png` and embedded as a data URI so offline export still has it.
@@ -63,15 +69,15 @@ Each sheet has a border and a title block (Carpenter Johnny, project, address, l
 ## Files
 
 - `index.html`, `css/app.css`, `js/app.js`: UI and live preview
-- `js/watermark.js`, `icons/cj-watermark.png`: faded Carpenter Johnny logo watermark (also inlined as a data URI)
+- `js/watermark.js`, `js/estimate-mark.js`, `icons/cj-watermark.png`: Carpenter Johnny logo and the anti-theft estimate overlay (also inlined as a data URI)
 - `js/engine.js`: length parsing, City tables, Johnny's foundation rule, framing geometry, design checks
 - `js/defaults.js`: Johnny's standard build (the editable sample project)
 - `js/svgkit.js`: CAD primitives (line weights, architectural-tick dimensions, leaders, hatches, level markers, view titles)
 - `js/sheets.js`, `js/sheets2.js`, `js/sheets3.js`: title block, site plan, overhead plan, elevations, and the cross-section / details builders
 - `vendor/`: jsPDF 4.2.1 and svg2pdf.js 2.9.0 (MIT, vendored locally, no CDN). jsPDF has a one-line patch so the embedded font's CID ordering reads "Identity", which some PDF readers need. The patch is noted in `LICENSE-jspdf.txt`.
 - `vendor/osifont-lgpl3fe.ttf`, `vendor/osifont.js`: osifont 0.1.20221020 (LGPL-3.0 with font exception, https://github.com/hikikomori82/osifont). The license text is in `vendor/LICENSE-osifont.txt`.
-- `sw.js`, `manifest.webmanifest`: offline/PWA. Cache name: `deckplan-v1.3.3`. The install / home-screen name is Deck Planner (`name` and `short_name` in the manifest, plus `apple-mobile-web-app-title`).
-- `demo/v1.3.3/`: v1.3.3 sample 5-page PDF and page PNGs of the default 16'×12' deck, showing the watermark. `demo/v1.3/` keeps the v1.3.2 samples (that deck, the L-shaped deck with landing, and the grade-raise sample). `demo/v1.2/` is not a separate folder; older outputs remain in `demo/` alongside `demo/v1.0/` and `demo/v1.1/`.
+- `sw.js`, `manifest.webmanifest`: offline/PWA. Cache name: `deckplan-v1.3.4`. The install / home-screen name is Deck Planner (`name` and `short_name` in the manifest, plus `apple-mobile-web-app-title`).
+- `demo/v1.3.4/`: v1.3.4 sample 3-page estimate PDF and page PNGs of the default 16'×12' deck, showing the anti-theft watermark. `demo/v1.3.3/` keeps the v1.3.3 five-sheet sample. `demo/v1.3/` keeps the v1.3.2 samples (that deck, the L-shaped deck with landing, and the grade-raise sample). `demo/v1.2/` is not a separate folder; older outputs remain in `demo/` alongside `demo/v1.0/` and `demo/v1.1/`.
 - `tools/e2e.py`: headless browser tests (Python Playwright, e.g. `/workspace/.venv-pw/bin/python tools/e2e.py`). Run it with the app served on 127.0.0.1:8931. `tools/overlap.js` is the overlap checker. `tools/svgdump.js` and `tools/shot.py` are render helpers.
 - `research/`: downloaded source PDFs and text, plus `JOHNNY-RULES.md`.
 

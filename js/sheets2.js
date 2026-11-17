@@ -320,7 +320,7 @@
       'ALL FRAMING LUMBER SPF NO.1/NO.2, PRESSURE TREATED. WOOD WITHIN 150 MM (6") OF GRADE OR EXPOSED TO WEATHER TO BE P.T.',
       'JOIST SPANS PER CITY TABLE 3 (1.9 KPA LIVE LOAD). JOISTS ' + st.framing.joist + ' @ ' + m.spacing + '" O.C., MAX CLEAR SPAN ' + fmt(m.clear) + '.',
       'BEAM ' + m.beam.label + ' PER CITY TABLE 2. NAIL PLIES WITH DOUBLE ROW OF 89 MM (3 1/2") NAILS @ 450 MM (18") O.C. MAX; BEAM JOINTS OVER SUPPORTS ONLY.',
-      'POSTS ' + st.framing.post + ' P.T., CENTRED ON FOOTINGS, FASTENED TO BEAM WITH GALV. POST CAP.' + (m.braced ? ' POSTS OVER 1.5 M (5\'-0"): KNEE BRACES SHOWN ON ELEVATIONS (A2, A3), SIZE AND BOLTING TO BE CONFIRMED (VERIFY).' : ' POSTS OVER 1.5 M (5\'-0") TO BE BRACED.'),
+      'POSTS ' + st.framing.post + ' P.T., CENTRED ON FOOTINGS, FASTENED TO BEAM WITH GALV. POST CAP.' + (m.braced ? ' POSTS OVER 1.5 M (5\'-0"): KNEE BRACES SHOWN ON ' + (DP.sheetOn('A2') && DP.sheetOn('A3') ? 'ELEVATIONS (A2, A3)' : DP.sheetOn('A3') ? 'THE SIDE ELEVATION (A3)' : DP.sheetOn('A2') ? 'THE FRONT ELEVATION (A2)' : 'THE DRAWINGS') + ', SIZE AND BOLTING TO BE CONFIRMED (VERIFY).' : ' POSTS OVER 1.5 M (5\'-0") TO BE BRACED.'),
       m.Hdec > 2 + 1e-9 ? 'PERMIT DECK OVER 2\'-0" (ABOVE FINISHED GRADE): GARY TAYLOR HELICAL PILES, CERTIFIED INSTALLER, EXTENDING MIN. 1.8 M (6\'-0") BELOW EXISTING UNDISTURBED GRADE. PYLEX PILES ARE FOR DECKS 2\'-0" OR LOWER ONLY.' : (m.deepReq ? 'FOOTINGS TO EXTEND MIN. 1.8 M (6\'-0") BELOW EXISTING UNDISTURBED GRADE (FROST). CONCRETE PIER DESIGN / SCREW PILE CAPACITY TO BE CONFIRMED ON SITE.' : 'SURFACE PADS PER CITY TABLE 1; PROVIDE ACCESS FOR RE-LEVELLING (SCREWED DECKING).'),
       m.attached ? 'LEDGER: REMOVE SIDING AT LEDGER, INSTALL OVER HOUSE RIM JOIST WITH Z-FLASHING. FASTENER TYPE/SPACING TO BE CONFIRMED (VERIFY).' : 'FREESTANDING DECK: NOT FASTENED TO DWELLING.',
     ];
@@ -622,7 +622,7 @@
     const kn = ['DECK HEIGHT ' + DP.heightPhrase(m) + ' (' + DP.mm(m.Hdec) + ' MM ABOVE THE GRADE USED FOR HEIGHT RULES).', m.guardOn ? 'GUARD ' + fin(m.guardHIn) + ' HIGH ABOVE DECK SURFACE, ' + (st.guard.type === 'alum' ? 'ALUMINUM' : st.guard.type === 'glass' ? 'GLASS' : 'WOOD') + ' SYSTEM.' : 'NO GUARD REQUIRED (DECK 600 MM OR LESS ABOVE FINISHED GRADE).'];
     if (m.raiseOn) kn.push(DP.gradeRaiseNote(m));
     if (st0) kn.push(st0.handrail || st0.guard ? 'STAIR ' + (st0.guard ? 'GUARD 36" ABOVE NOSINGS, GRASPABLE HANDRAIL 865–1070 MM.' : 'HANDRAIL 865–1070 MM ABOVE NOSINGS.') : 'STAIR 3 RISERS OR LESS: NO HANDRAIL REQUIRED.');
-    if (v !== 'front' && m.openings.length) kn.push('DOORS / BASEMENT WINDOWS IN THE HOUSE WALL: SEE THE OPENINGS TABLE ON A1 AND THE VIEW ON A2.');
+    if (v !== 'front' && m.openings.length) kn.push('DOORS / BASEMENT WINDOWS IN THE HOUSE WALL: SEE THE OPENINGS TABLE ON A1' + (DP.sheetOn('A2') ? ' AND THE VIEW ON A2.' : '.'));
     const knLines = kn.flatMap((l) => DP.wrapW(l, A.w - 380, 8));
     const kx = A.x + 360; let ky = A.y + A.h - 18 - knLines.length * 10.5;
     knLines.forEach((l) => { sv.text(kx, ky, l, { size: 8 }); ky += 10.5; });

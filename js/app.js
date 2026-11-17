@@ -98,6 +98,9 @@
     if (!sheets.find((s) => s.num === cur)) cur = 'A0';
     $('#tabs').innerHTML = sheets.map((s) => `<button role="tab" aria-selected="${s.num === cur}" data-s="${s.num}">${s.num} ${esc(s.short || title(s.title))}</button>`).join('');
     showSheet();
+    const estBtn = DP.isEstimateCopy(st);
+    $('#btnPdf').textContent = estBtn ? 'Export estimate PDF' : 'Export final PDF';
+    $('#btnPdf').title = estBtn ? 'Watermarked estimate copy — flattened so the mark cannot be removed' : 'Clean paid copy, vector, no watermark';
     // checks chip
     const c = model.checks; const ng = c.filter((x) => x.status === 'NG').length, vf = c.filter((x) => x.status === 'VERIFY').length, ok = c.filter((x) => x.status === 'OK').length;
     $('#chkChip').innerHTML = (ng ? `<span class="ng">${ng} fail</span> · ` : '') + `<span class="vf">${vf} to verify</span> · <span class="ok">${ok} pass</span>`;
@@ -123,13 +126,43 @@
   $('#chkChip').addEventListener('click', () => { const c = $('#checks'); c.hidden = !c.hidden; });
 
   /* ---------- PDF ---------- */
+  async function rasterizeSvg(el, ptW, ptH) {
+    const E = DP.ESTIMATE || { dpi: 175, jpegQuality: 0.82 };
+    const dpi = E.dpi || 175, q = E.jpegQuality || 0.82;
+    const pxW = Math.round(ptW * dpi / 72), pxH = Math.round(ptH * dpi / 72);
+    const clone = el.cloneNode(true);
+    clone.setAttribute('width', String(pxW));
+    clone.setAttribute('height', String(pxH));
+    if (window.DP_FONT && window.DP_FONT.b64) {
+      const style = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+      style.textContent = '@font-face{font-family:osifont;src:url("data:font/ttf;base64,' + window.DP_FONT.b64 + '") format("truetype");}';
+      clone.insertBefore(style, clone.firstChild);
+    }
+    // Blob URL so in-SVG "#id" references (the logo <use>) resolve; a data: URL treats # as a fragment.
+    const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(clone)], { type: 'image/svg+xml;charset=utf-8' }));
+    const img = await new Promise((resolve, reject) => {
+      const im = new Image();
+      im.onload = () => resolve(im);
+      im.onerror = () => reject(new Error('Could not rasterize the sheet'));
+      im.src = url;
+    });
+    URL.revokeObjectURL(url);
+    const canvas = document.createElement('canvas');
+    canvas.width = pxW; canvas.height = pxH;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, pxW, pxH);
+    ctx.drawImage(img, 0, 0, pxW, pxH);
+    return canvas.toDataURL('image/jpeg', q);
+  }
   async function pdf(list, filename) {
     const { jsPDF } = window.jspdf;
     const letter = st.out.paper === 'letter';
+    const estimate = DP.isEstimateCopy(st);
     const fmtA = letter ? [792, 612] : [1224, 792];
     const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: fmtA, compress: true });
-    // embed the drafting font (osifont) so the PDF looks the same everywhere
-    if (window.DP_FONT) {
+    // embed the drafting font (osifont) so the PDF looks the same everywhere (clean/vector copies)
+    if (window.DP_FONT && !estimate) {
       const F = window.DP_FONT;
       doc.addFileToVFS(F.file, F.b64);
       doc.addFont(F.file, F.name, 'normal'); // one weight; bold text is drawn with a thin outline
@@ -142,23 +175,33 @@
       const el = stage.querySelector('svg');
       const k = letter ? Math.min(792 / 1224, 612 / 792) : 1;
       const w = 1224 * k, h = 792 * k;
-      await doc.svg(el, { x: (fmtA[0] - w) / 2, y: (fmtA[1] - h) / 2, width: w, height: h });
+      const x = (fmtA[0] - w) / 2, y = (fmtA[1] - h) / 2;
+      if (estimate) {
+        const data = await rasterizeSvg(el, w, h);
+        doc.addImage(data, 'JPEG', x, y, w, h);
+      } else {
+        await doc.svg(el, { x, y, width: w, height: h });
+      }
     }
     stage.innerHTML = '';
-    doc.setProperties({ title: 'Deck Planner — ' + (st.project.address || 'deck permit drawings'), subject: 'Residential deck, City of Winnipeg', author: st.project.drawnBy || 'Carpenter Johnny', creator: 'Deck Planner v1.3.3' });
+    const kind = estimate ? 'estimate copy (watermarked)' : 'final paid copy (clean)';
+    doc.setProperties({ title: 'Deck Planner — ' + (st.project.address || 'deck permit drawings') + ' — ' + kind, subject: 'Residential deck, City of Winnipeg', author: st.project.drawnBy || 'Carpenter Johnny', creator: 'Deck Planner v1.3.4' });
     doc.save(filename);
     return doc;
   }
   const slug = () => ((st.project.address || 'deck').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'deck') + '-' + (st.project.date || '');
+  function copyTag() { return DP.isEstimateCopy(st) ? 'ESTIMATE' : 'FINAL'; }
+  function labelExport() { return DP.isEstimateCopy(st) ? 'Export estimate PDF' : 'Export final PDF'; }
   async function exportAll() {
     const b = $('#btnPdf'); b.disabled = true; b.textContent = 'Building PDF…';
     try {
       const reduced = st.out.paper === 'letter';
+      const estimate = DP.isEstimateCopy(st);
       const list = DP.buildSheets(model, st, { reduced });
-      await pdf(list, 'deck-permit-' + slug() + '.pdf');
-      toast('PDF saved: ' + list.length + ' sheets (site plan, overhead plan, front and side elevations, section).');
+      await pdf(list, 'deck-permit-' + slug() + '-' + copyTag() + '.pdf');
+      toast((estimate ? 'Estimate PDF saved: ' : 'Final PDF saved: ') + list.length + ' sheets (site plan, overhead plan, side elevation)' + (estimate ? ', watermarked and flattened.' : ', clean vector, no watermark.'));
     } catch (e) { console.error(e); toast('PDF export failed: ' + e.message); }
-    b.disabled = false; b.textContent = 'Export PDF';
+    b.disabled = false; b.textContent = labelExport();
   }
   $('#btnPdf').addEventListener('click', exportAll);
   $('#btnSave').addEventListener('click', () => {

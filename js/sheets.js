@@ -9,22 +9,9 @@
   DP.SHEET = SHEET;
   const TS = DP.TS;
 
-  /* Faded Carpenter Johnny logo, centered in the drawing field (left of the title block).
-     Opacity is baked into the PNG (8%), so the mark stays faint in the PDF even if svg2pdf drops the opacity attribute. */
-  function watermark(sv, area) {
-    const href = DP.WATERMARK_DATA;
-    if (!href) return;
-    const aspect = DP.WATERMARK_ASPECT || 1.37;
-    const maxW = area.w * 0.56, maxH = area.h * 0.60;
-    let w = maxW, h = w / aspect;
-    if (h > maxH) { h = maxH; w = h * aspect; }
-    const x = area.x + (area.w - w) / 2, y = area.y + (area.h - h) / 2;
-    sv.image(x, y, w, h, href, { role: 'watermark' });
-  }
   function frame(sv, m, st, meta) {
     const x = B.x1 - 4 - TB, y0 = B.y0 + 4, y1 = B.y1 - 4, w = TB;
     const area = { x: B.x0 + 4, y: y0, w: x - B.x0 - 4, h: y1 - y0 };
-    watermark(sv, area);
     sv.rect(x, y0, w, y1 - y0, 0, { fill: '#fff', stroke: 'none' });
     sv.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0, LW.xh);
     sv.rect(B.x0 + 4, B.y0 + 4, B.x1 - B.x0 - 8, B.y1 - B.y0 - 8, LW.t);
@@ -315,7 +302,7 @@
       'a = DECK TO SIDE PROPERTY LINES, b = DECK TO REAR PROPERTY LINE, c = REAR YARD (DWELLING TO REAR PROPERTY LINE).',
       'NO HOT TUB / SPA PROPOSED ON THIS DECK.',
     ];
-    if (m.raiseOn) notes.splice(4, 0, DP.gradeRaiseNote(m), 'EXISTING GRADE AND PROPOSED FINISHED GRADE ARE SHOWN ON THE ELEVATIONS AND SECTION. PILE EMBEDMENT IS MEASURED FROM EXISTING UNDISTURBED GRADE.');
+    if (m.raiseOn) notes.splice(4, 0, DP.gradeRaiseNote(m), ('EXISTING GRADE AND PROPOSED FINISHED GRADE ARE SHOWN ON ' + (function () { const bits = []; if (DP.sheetOn('A2') && DP.sheetOn('A3')) bits.push('THE ELEVATIONS'); else if (DP.sheetOn('A3')) bits.push('THE SIDE ELEVATION (A3)'); else if (DP.sheetOn('A2')) bits.push('THE FRONT ELEVATION (A2)'); if (DP.sheetOn('A4')) bits.push('THE SECTION (A4)'); return (bits.join(' AND ') || 'THE DRAWINGS') + '. PILE EMBEDMENT IS MEASURED FROM EXISTING UNDISTURBED GRADE.'; })()));
     const lotA = m.lotW * m.lotD, houseA = m.hW * m.hD;
     const data = [['LOT AREA', Math.round(lotA) + ' SQ.FT (' + (lotA * 0.0929).toFixed(1) + ' M²)'], ['DWELLING FOOTPRINT', Math.round(houseA) + ' SQ.FT'], ['PROPOSED DECK', Math.round(m.area) + ' SQ.FT (' + (m.area * 0.0929).toFixed(1) + ' M²)'], ...(m.landing ? [['STAIR LANDING', Math.round(m.landingArea) + ' SQ.FT AT +' + fmt(m.landing.H)]] : []), ['DECK HEIGHT', m.raiseOn ? fmt(m.Hexist) + ' EXIST. / ' + fmt(m.Hfin) + ' FIN.' : fmt(m.H) + ' (' + DP.mm(m.H) + ' MM)'], ['REAR YARD AFTER DECK', fmt(m.rearD) + ' (' + (m.rearD * 0.3048).toFixed(2) + ' M)']];
     const dataBlock = (cx, ny, w) => {

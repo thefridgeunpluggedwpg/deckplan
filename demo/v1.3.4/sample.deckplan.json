@@ -1,0 +1,131 @@
+{
+ "v": 1,
+ "project": {
+  "owner": "Sample Owner",
+  "address": "123 Sample Street",
+  "city": "Winnipeg, MB",
+  "legal": "LOT __ BLOCK __ PLAN ____ (VERIFY)",
+  "permitNo": "",
+  "drawnBy": "CARPENTER JOHNNY",
+  "firmLine": "CARPENTRY CONTRACTOR",
+  "firmCity": "WINNIPEG, MANITOBA",
+  "contact": "",
+  "checkedBy": "",
+  "date": "2026-11-17",
+  "revisions": [
+   {
+    "no": "0",
+    "date": "2026-11-17",
+    "desc": "ISSUED FOR CONSTRUCTION"
+   }
+  ],
+  "notes": ""
+ },
+ "site": {
+  "street": "SAMPLE STREET",
+  "lane": true,
+  "laneName": "REAR LANE",
+  "faces": "N",
+  "lotW": "50'",
+  "lotD": "120'",
+  "houseW": "36'",
+  "houseD": "30'",
+  "frontSB": "25'",
+  "leftSB": "7'",
+  "sideReq": "",
+  "overhead": false,
+  "overheadNote": "",
+  "garage": {
+   "on": true,
+   "w": "22'",
+   "d": "22'",
+   "rear": "3'",
+   "right": "3'"
+  },
+  "dimSource": ""
+ },
+ "deck": {
+  "attach": "attached",
+  "L": "16'",
+  "W": "12'",
+  "H": "4'",
+  "offset": "10'",
+  "gap": "1'",
+  "shape": "rect",
+  "extSide": "right",
+  "extW": "8'",
+  "extD": "6'",
+  "raiseGrade": false,
+  "gradeRaise": "6\""
+ },
+ "openings": [
+  {
+   "type": "door",
+   "at": "5'",
+   "w": "6'",
+   "h": "6'-8\"",
+   "bedroom": false,
+   "label": "PATIO DOOR"
+  },
+  {
+   "type": "window",
+   "at": "12'",
+   "w": "3'",
+   "h": "2'",
+   "bedroom": false,
+   "label": "BASEMENT WINDOW"
+  }
+ ],
+ "framing": {
+  "joist": "2x8",
+  "spacing": 16,
+  "dir": "perp",
+  "cant": "1'",
+  "beam": "3-2x8",
+  "post": "6x6",
+  "postMax": "8'",
+  "beamOH": "1'"
+ },
+ "found": {
+  "type": "screwpile",
+  "dia": 10,
+  "depth": "6'",
+  "above": "6\"",
+  "padT": 6,
+  "engineered": false,
+  "pileMaker": "Gary Taylor",
+  "pileModel": ""
+ },
+ "ledger": {
+  "fastener": "FastenMaster LedgerLOK 5\"",
+  "spacing": 16
+ },
+ "decking": {
+  "material": "composite",
+  "thk": 1,
+  "boardW": 5.5,
+  "gap": 0.1875,
+  "name": "Composite deck boards 1\" x 5 1/2\""
+ },
+ "guard": {
+  "type": "alum",
+  "always": false
+ },
+ "stairs": {
+  "on": true,
+  "side": "front",
+  "offset": "2'",
+  "width": "3'-6\"",
+  "run": 10.5,
+  "targetRise": 7.5,
+  "landing": {
+   "on": false,
+   "depth": "4'",
+   "frac": 0.5
+  }
+ },
+ "out": {
+  "paper": "tabloid",
+  "copy": "estimate"
+ }
+}

@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Deck Planner — deck permit drawings</title>
-<meta name="description" content="Enter a deck design and get City of Winnipeg permit-style blueprint drawings: site plan, overhead plan, front and side elevations, and a cross-section with details, one per PDF page.">
+<meta name="description" content="Enter a deck design and get City of Winnipeg permit-style blueprint drawings: site plan, overhead plan and side elevation. Estimate copies are watermarked; a final paid copy is clean.">
 <meta name="theme-color" content="#2b3036">
-<meta name="deckplan-version" content="1.3.3">
+<meta name="deckplan-version" content="1.3.4">
 <meta name="apple-mobile-web-app-title" content="Deck Planner">
 <meta name="application-name" content="Deck Planner">
 <link rel="manifest" href="manifest.webmanifest">
@@ -22,7 +22,7 @@
   <div class="actions">
     <button class="ghost" id="btnOpen" title="Open a saved project file">Open</button>
     <button class="ghost" id="btnSave" title="Download this project as a file">Save</button>
-    <button class="primary" id="btnPdf" title="Site plan, overhead plan, front and side elevations, and section, one per page">Export PDF</button>
+    <button class="primary" id="btnPdf" title="Export a watermarked estimate copy or a clean final copy">Export estimate PDF</button>
   </div>
   <input type="file" id="fileOpen" accept=".json,application/json" hidden>
 </header>
@@ -34,7 +34,7 @@
 
 <main class="layout">
   <form class="inputs" id="form" autocomplete="off" onsubmit="return false">
-    <p class="hint">Deck Planner makes blueprint drawings: 5 sheets (site plan, overhead plan, front elevation, side elevation, cross-section and details). Johnny makes his own takeoff and pricing from the drawings. Lengths accept <code>16'</code>, <code>12'-6"</code>, <code>4.5</code> (feet) or <code>1200mm</code>. Drawings update as you type.</p>
+    <p class="hint">Deck Planner makes blueprint drawings: 3 sheets for this prototype (site plan, overhead plan, and side elevation). Johnny makes his own takeoff and pricing from the drawings. Lengths accept <code>16'</code>, <code>12'-6"</code>, <code>4.5</code> (feet) or <code>1200mm</code>. Drawings update as you type.</p>
 
     <details open><summary>Project &amp; title block</summary>
       <label>Owner<input data-k="project.owner"></label>
@@ -196,6 +196,11 @@
 
     <details><summary>Notes &amp; paper</summary>
       <label>Extra note on the framing sheet<textarea rows="3" data-k="project.notes"></textarea></label>
+      <label>Copy type<select data-k="out.copy" id="inCopy">
+        <option value="estimate">Estimate copy (watermarked)</option>
+        <option value="final">Final paid copy (clean)</option>
+      </select></label>
+      <p class="note">Estimate copies have a heavy anti-theft watermark across every sheet (including the title block) and are flattened so the mark cannot be removed. A final paid copy is a clean vector PDF with no watermark. Customers who need a clean set pay Johnny for the final copy.</p>
       <label>Paper<select data-k="out.paper"><option value="tabloid">11×17 (Tabloid), full scale</option><option value="letter">8.5×11 (Letter), reduced</option></select></label>
       <button type="button" class="ghost wide danger" id="btnReset">Reset to the sample deck</button>
     </details>
@@ -219,6 +224,7 @@
 <script src="js/engine.js"></script>
 <script src="js/svgkit.js"></script>
 <script src="js/watermark.js"></script>
+<script src="js/estimate-mark.js"></script>
 <script src="js/sheets.js"></script>
 <script src="js/sheets2.js"></script>
 <script src="js/sheets3.js"></script>

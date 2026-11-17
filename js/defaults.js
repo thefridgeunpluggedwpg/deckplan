@@ -1,6 +1,8 @@
 /* Default project: Johnny's standard build (12' x 16' attached, 4'-0" above grade, 2x8 @ 16" o.c., Gary Taylor helical piles, composite, one stair). */
 (function () {
   const DP = (window.DP = window.DP || {});
+  /* v1.3.4 prototype set. Add 'A2' and/or 'A4' to restore the front elevation and section. */
+  DP.ENABLED_SHEETS = ['A0', 'A1', 'A3'];
   const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   DP.defaultState = function () {
     return {
@@ -27,7 +29,7 @@
       decking: { material: 'composite', thk: 1, boardW: 5.5, gap: 0.1875, name: 'Composite deck boards 1" x 5 1/2"' },
       guard: { type: 'alum', always: false },
       stairs: { on: true, side: 'front', offset: "2'", width: '3\'-6"', run: 10.5, targetRise: 7.5, landing: { on: false, depth: "4'", frac: 0.5 } },
-      out: { paper: 'tabloid' },
+      out: { paper: 'tabloid', copy: 'estimate' },
     };
   };
 })();

@@ -420,20 +420,29 @@
 
   DP.sectionSheet = sectionSheet;
 
-  /* Sheet list: A0 site plan, A1 overhead plan, A2 front elevation, A3 side elevation, A4 cross-section and details. */
+  /* Full catalog stays intact; DP.ENABLED_SHEETS (defaults.js) chooses which ones print.
+     v1.3.4 prototype set is A0, A1, A3. Turn A2 / A4 back on by adding them to that list. */
+  DP.SHEET_CATALOG = [
+    ['A0', 'SITE PLAN', (m2, st2, me) => DP.siteSheet(m2, st2, me), 'Site plan'],
+    ['A1', 'OVERHEAD PLAN: FRAMING & FOUNDATION', (m2, st2, me) => DP.framingSheet(m2, st2, me), 'Overhead plan'],
+    ['A2', 'FRONT ELEVATION', (m2, st2, me) => DP.elevViewSheet(m2, st2, me, 'front'), 'Front elevation'],
+    ['A3', 'SIDE ELEVATION', (m2, st2, me) => DP.elevViewSheet(m2, st2, me, 'left'), 'Side elevation'],
+    ['A4', 'CROSS-SECTION AND DETAILS', (m2, st2, me) => DP.sectionSheet(m2, st2, me), 'Section & details'],
+  ];
+  DP.sheetOn = function (num) { return (DP.ENABLED_SHEETS || ['A0', 'A1', 'A2', 'A3', 'A4']).indexOf(num) >= 0; };
+  DP.elevRef = function () { return DP.sheetOn('A2') ? 'A2' : (DP.sheetOn('A3') ? 'A3' : ''); };
   DP.buildSheets = function (m, st, o = {}) {
-    const list = [
-      ['A0', 'SITE PLAN', DP.siteSheet, 'Site plan'],
-      ['A1', 'OVERHEAD PLAN: FRAMING & FOUNDATION', DP.framingSheet, 'Overhead plan'],
-      ['A2', 'FRONT ELEVATION', (m2, st2, me) => DP.elevViewSheet(m2, st2, me, 'front'), 'Front elevation'],
-      ['A3', 'SIDE ELEVATION', (m2, st2, me) => DP.elevViewSheet(m2, st2, me, 'left'), 'Side elevation'],
-      ['A4', 'CROSS-SECTION AND DETAILS', DP.sectionSheet, 'Section & details'],
-    ];
+    const catalog = DP.SHEET_CATALOG;
+    const enabled = DP.ENABLED_SHEETS && DP.ENABLED_SHEETS.length ? DP.ENABLED_SHEETS : catalog.map((x) => x[0]);
+    const list = catalog.filter(([num]) => enabled.indexOf(num) >= 0);
     return list.map(([num, title, fn, short], i) => {
-      const meta = { num, title, of: (i + 1) + ' OF ' + list.length, scale: 'AS NOTED', reduced: o.reduced, elevRef: 'A2' };
+      const meta = { num, title, of: (i + 1) + ' OF ' + list.length, scale: 'AS NOTED', reduced: o.reduced, elevRef: DP.elevRef() };
       let svg;
-      try { svg = fn(m, st, meta).toString(DP.SHEET.W, DP.SHEET.H); }
-      catch (e) { console.error(e); const sv = new Svg(); H.frame(sv, m, st, meta); sv.text(80, 120, 'COULD NOT DRAW THIS SHEET: ' + e.message, { size: 10 }); svg = sv.toString(DP.SHEET.W, DP.SHEET.H); }
+      try {
+        const sv = fn(m, st, meta);
+        if (DP.isEstimateCopy && DP.isEstimateCopy(st) && DP.drawEstimateWatermark) DP.drawEstimateWatermark(sv, st);
+        svg = sv.toString(DP.SHEET.W, DP.SHEET.H);
+      } catch (e) { console.error(e); const sv = new Svg(); H.frame(sv, m, st, meta); sv.text(80, 120, 'COULD NOT DRAW THIS SHEET: ' + e.message, { size: 10 }); svg = sv.toString(DP.SHEET.W, DP.SHEET.H); }
       return { num, title, short, svg };
     });
   };
