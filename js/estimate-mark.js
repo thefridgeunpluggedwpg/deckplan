@@ -40,7 +40,7 @@
     const aspect = DP.WATERMARK_ASPECT || 1.37014925;
     const cx = W / 2, cy = H / 2, f = (n) => (Math.round(n * 1000) / 1000).toString();
     const p = (st && st.project) || {};
-    const rnd = seedRng(String(p.address || '') + '|' + String(p.date || '') + '|v1.3.5');
+    const rnd = seedRng(String(p.address || '') + '|' + String(p.date || '') + '|v1.3.6');
     const headline = 'PROPRIETARY INFORMATION - ESTIMATE COPY - NOT FOR CONSTRUCTION - CARPENTER JOHNNY';
     const job = jobLine(st);
     sv.add('<g data-role="estimate-watermark" pointer-events="none" style="mix-blend-mode:multiply">');

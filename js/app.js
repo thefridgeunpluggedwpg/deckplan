@@ -75,6 +75,10 @@
     else if (el.dataset.type === 'num') v = v === '' ? '' : +v;
     set(el.dataset.k, v);
     if (el.hasAttribute('data-len')) showParsed(el);
+    if (el.dataset.k === 'decking.material') {
+      const P = { composite: { thk: 1, boardW: 5.5, name: 'Composite deck boards 1" x 5 1/2"' }, pt: { thk: 1, boardW: 5.5, name: 'P.T. 5/4x6 deck boards 1" x 5 1/2"' }, pt2x6: { thk: 1.5, boardW: 5.5, name: 'P.T. 2x6 deck boards 1 1/2" x 5 1/2"' } }[v];
+      if (P) { Object.keys(P).forEach((k) => set('decking.' + k, P[k])); fillForm(); }
+    }
     if (/^openings\.\d+\.type$/.test(el.dataset.k)) { openList(); fillForm(); }
     syncVisibility();
     clearTimeout(timer); timer = setTimeout(render, 140);
@@ -185,7 +189,7 @@
     }
     stage.innerHTML = '';
     const kind = estimate ? 'estimate copy (watermarked)' : 'final paid copy (clean)';
-    doc.setProperties({ title: 'Deck Planner — ' + (st.project.address || 'deck permit drawings') + ' — ' + kind, subject: 'Residential deck, City of Winnipeg', author: st.project.drawnBy || 'Carpenter Johnny', creator: 'Deck Planner v1.3.5' });
+    doc.setProperties({ title: 'Deck Planner — ' + (st.project.address || 'deck permit drawings') + ' — ' + kind, subject: 'Residential deck, City of Winnipeg', author: st.project.drawnBy || 'Carpenter Johnny', creator: 'Deck Planner v1.3.6' });
     doc.save(filename);
     return doc;
   }
